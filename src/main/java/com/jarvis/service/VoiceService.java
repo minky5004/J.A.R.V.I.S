@@ -3,7 +3,10 @@ package com.jarvis.service;
 import com.jarvis.config.VoiceConfig;
 import com.jarvis.dto.VoiceData;
 import com.jarvis.exception.InvalidFileException;
+import com.jarvis.tool.JarvisTools;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -11,7 +14,11 @@ import java.util.UUID;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class VoiceService {
+
+    private final ChatClient chatClient;
+    private final JarvisTools jarvisTools;
 
     public VoiceData processVoice(MultipartFile file) {
         validateFile(file);
@@ -19,12 +26,31 @@ public class VoiceService {
         String id = UUID.randomUUID().toString();
         log.info("음성 처리 시작 - ID: {}, 파일명: {}", id, file.getOriginalFilename());
 
+        // 1. STT 변환 (현재는 임시)
+        String transcript = extractTranscriptFromFile(file);
+
+        // 2. ChatClient로 처리 (Tool Calling 포함)
+        String response = chatClient.prompt()
+            .system("당신은 음성 명령 AI 어시스턴트입니다. 한국어로 친절하게 응답하세요.")
+            .user(transcript)
+            .tools(jarvisTools)
+            .call()
+            .content();
+
+        log.info("음성 처리 완료 - ID: {}", id);
+
         return VoiceData.builder()
             .id(id)
-            .transcript(null)  // 나중에 Whisper STT 결과 저장
-            .intent(null)       // 나중에 GPT 의도 파악 결과 저장
-            .result(null)       // 나중에 Tool Calling 결과 저장
+            .transcript(transcript)
+            .intent("처리 완료")
+            .result(response)
             .build();
+    }
+
+    private String extractTranscriptFromFile(MultipartFile file) {
+        // 현재는 임시: 파일명만 반환
+        // 나중에 Whisper API로 대체
+        return "파일: " + file.getOriginalFilename();
     }
 
     private void validateFile(MultipartFile file) {
