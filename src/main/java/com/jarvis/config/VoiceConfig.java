@@ -1,5 +1,7 @@
 package com.jarvis.config;
 
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import java.util.Set;
 
@@ -25,4 +27,9 @@ public class VoiceConfig {
 
     // 임시 파일 저장 디렉토리
     public static final String TEMP_DIR = "temp/voice";
+
+    @Bean
+    public ChatClient chatClient(ChatClient.Builder builder) {
+        return builder.build();
+    }
 }
