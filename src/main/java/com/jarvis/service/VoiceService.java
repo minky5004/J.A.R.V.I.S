@@ -97,8 +97,8 @@ public class VoiceService {
 
     private void validateContentType(MultipartFile file) {
         String contentType = file.getContentType();
-        if (contentType == null || !VoiceConfig.ALLOWED_MIME_TYPES.contains(contentType)) {
-            throw new InvalidFileException("지원하지 않는 파일 형식입니다.");
+        if (contentType == null || !contentType.startsWith("audio/")) {
+            throw new InvalidFileException("오디오 파일만 업로드 가능합니다.");
         }
     }
 }
