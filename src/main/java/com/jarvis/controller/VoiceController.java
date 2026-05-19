@@ -24,7 +24,7 @@ public class VoiceController {
     public ResponseEntity<VoiceProcessResponse> processVoice(
         @RequestParam("file") MultipartFile file
     ) {
-        log.info("음성 처리 요청 - 파일명: {}", file.getOriginalFilename());
+        log.info("음성 처리 요청 - 크기: {}bytes", file.getSize());
 
         VoiceData voiceData = voiceService.processVoice(file);
 

@@ -28,7 +28,7 @@ public class GlobalExceptionHandler {
         log.error("음성 처리 오류: {}", e.getMessage(), e);
         VoiceProcessResponse response = VoiceProcessResponse.builder()
             .success(false)
-            .message("음성 처리 중 오류가 발생했습니다: " + e.getMessage())
+            .message("음성 처리 중 오류가 발생했습니다.")
             .data(null)
             .build();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);

@@ -3,6 +3,7 @@ package com.jarvis.service;
 import com.jarvis.config.VoiceConfig;
 import com.jarvis.dto.VoiceData;
 import com.jarvis.exception.InvalidFileException;
+import com.jarvis.exception.VoiceProcessingException;
 import com.jarvis.tool.JarvisTools;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,33 +25,40 @@ public class VoiceService {
         validateFile(file);
 
         String id = UUID.randomUUID().toString();
-        log.info("음성 처리 시작 - ID: {}, 파일명: {}", id, file.getOriginalFilename());
+        long fileSize = file.getSize();
+        log.info("음성 처리 시작 - ID: {}, 크기: {}bytes", id, fileSize);
 
         // 1. STT 변환 (현재는 임시)
         String transcript = extractTranscriptFromFile(file);
 
         // 2. ChatClient로 처리 (Tool Calling 포함)
-        String response = chatClient.prompt()
-            .system("당신은 음성 명령 AI 어시스턴트입니다. 한국어로 친절하게 응답하세요.")
-            .user(transcript)
-            .tools(jarvisTools)
-            .call()
-            .content();
+        String response;
+        try {
+            response = chatClient.prompt()
+                .system("당신은 음성 명령 AI 어시스턴트입니다. 한국어로 친절하게 응답하세요.")
+                .user(transcript)
+                .tools(jarvisTools)
+                .call()
+                .content();
+        } catch (Exception e) {
+            log.error("ChatClient 처리 중 오류 발생 - ID: {}", id, e);
+            throw new VoiceProcessingException("음성 처리 중 오류가 발생했습니다.", e);
+        }
 
         log.info("음성 처리 완료 - ID: {}", id);
 
         return VoiceData.builder()
             .id(id)
             .transcript(transcript)
-            .intent("처리 완료")
+            .intent("사용자 요청 처리")
             .result(response)
             .build();
     }
 
     private String extractTranscriptFromFile(MultipartFile file) {
-        // 현재는 임시: 파일명만 반환
+        // 현재는 임시: 파일명 제거
         // 나중에 Whisper API로 대체
-        return "파일: " + file.getOriginalFilename();
+        return "음성 입력 감지됨";
     }
 
     private void validateFile(MultipartFile file) {
