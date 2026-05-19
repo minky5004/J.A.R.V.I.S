@@ -68,6 +68,7 @@ public class VoiceService {
 
         validateFileSize(file);
         validateFileExtension(file);
+        validateContentType(file);
     }
 
     private void validateFileSize(MultipartFile file) {
@@ -91,6 +92,13 @@ public class VoiceService {
                 String.format("지원하지 않는 파일 형식입니다. 허용 형식: %s",
                     String.join(", ", VoiceConfig.ALLOWED_EXTENSIONS))
             );
+        }
+    }
+
+    private void validateContentType(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType == null || !VoiceConfig.ALLOWED_MIME_TYPES.contains(contentType)) {
+            throw new InvalidFileException("지원하지 않는 파일 형식입니다.");
         }
     }
 }
