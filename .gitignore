@@ -43,3 +43,7 @@ application-local.yaml
 
 ### Documentation ###
 Claude.md
+docs/
+
+### Claude Code ###
+.claude/

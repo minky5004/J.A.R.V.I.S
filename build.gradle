@@ -21,7 +21,7 @@ repositories {
 
 dependencyManagement {
     imports {
-        mavenBom "org.springframework.ai:spring-ai-bom:1.0.0-M3"
+        mavenBom "org.springframework.ai:spring-ai-bom:2.0.0-M4"
     }
 }
 
@@ -35,11 +35,11 @@ dependencies {
     implementation 'com.openai:openai-java:0.13.0'
 
     // Spring AI (Tool Calling 지원)
-    implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter:1.0.0-M3'
+    implementation 'org.springframework.ai:spring-ai-starter-model-openai'
 
     // Google Calendar API
     implementation 'com.google.api-client:google-api-client:1.35.2'
-    implementation 'com.google.oauth-client:google-oauth-client-jetty:1.35.2'
+    implementation 'com.google.oauth-client:google-oauth-client-jetty:1.35.0'
     implementation 'com.google.apis:google-api-services-calendar:v3-rev411-1.25.0'
 
     // OpenWeather API
