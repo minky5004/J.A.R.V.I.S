@@ -3,6 +3,7 @@ package com.jarvis.config;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
 import java.io.File;
 import java.util.Set;
 
@@ -11,7 +12,7 @@ public class VoiceConfig {
     public static final long MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
     @SuppressWarnings("unused")
     public static final long MAX_REQUEST_SIZE = 30 * 1024 * 1024; // 30MB
-    public static final Set<String> ALLOWED_EXTENSIONS = Set.of("wav", "mp3", "m4a", "flac", "ogg");
+    public static final Set<String> ALLOWED_EXTENSIONS = Set.of("wav", "mp3", "m4a", "flac", "ogg", "webm");
     @SuppressWarnings("unused")
     public static final Set<String> ALLOWED_MIME_TYPES = Set.of("audio/wav", "audio/mpeg", "audio/mp4", "audio/flac", "audio/ogg");
     @SuppressWarnings("unused")
@@ -20,5 +21,10 @@ public class VoiceConfig {
     @Bean
     public ChatClient chatClient(ChatClient.Builder builder) {
         return builder.build();
+    }
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
     }
 }
