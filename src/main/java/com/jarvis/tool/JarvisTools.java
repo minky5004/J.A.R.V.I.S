@@ -29,7 +29,7 @@ public class JarvisTools {
             return callDuckDuckGoAPI(query);
         } catch (Exception e) {
             log.error("DuckDuckGo 검색 실패 - 검색어: {}", query, e);
-            return "검색 중 오류가 발생했습니다: " + e.getMessage();
+            return "검색 중 오류가 발생했습니다.";
         }
     }
 

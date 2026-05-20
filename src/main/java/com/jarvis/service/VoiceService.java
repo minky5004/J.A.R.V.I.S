@@ -89,7 +89,7 @@ public class VoiceService {
             // OpenAI Whisper API를 통한 음성 인식
             String transcript = callWhisperAPI(fileBytes, filename);
 
-            log.info("음성 인식 완료 - 텍스트: {}", transcript);
+            log.info("음성 인식 완료 - 텍스트 길이: {}글자", transcript.length());
             return transcript;
 
         } catch (Exception e) {
@@ -137,7 +137,7 @@ public class VoiceService {
             String responseBody = response.getBody();
             if (responseBody == null || responseBody.isEmpty()) {
                 log.warn("Whisper API 응답이 비어있음");
-                return "음성 인식 완료";
+                throw new VoiceProcessingException("음성 인식에 실패했습니다. 다시 시도해주세요.");
             }
 
             ObjectMapper objectMapper = new ObjectMapper();
@@ -146,17 +146,17 @@ public class VoiceService {
 
             if (textNode == null) {
                 log.warn("Whisper API 응답에 'text' 필드 없음");
-                return "음성 인식 완료";
+                throw new VoiceProcessingException("음성 인식에 실패했습니다. 다시 시도해주세요.");
             }
 
             String transcript = textNode.asText();
 
             if (transcript.trim().isEmpty()) {
                 log.warn("Whisper API 응답이 비어있음");
-                return "음성 인식 완료";
+                throw new VoiceProcessingException("음성 인식에 실패했습니다. 다시 시도해주세요.");
             }
 
-            log.info("음성 인식 성공 - 텍스트: {}", transcript);
+            log.info("음성 인식 성공 - 텍스트 길이: {}글자", transcript.length());
             return transcript;
 
         } catch (Exception e) {

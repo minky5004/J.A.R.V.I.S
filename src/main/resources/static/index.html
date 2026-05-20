@@ -351,8 +351,8 @@
 
         <!-- 탭 메뉴 -->
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('upload')">📁 파일 업로드</button>
-            <button class="tab-btn" onclick="switchTab('record')">🎤 음성 녹음</button>
+            <button class="tab-btn active" onclick="switchTab(event, 'upload')">📁 파일 업로드</button>
+            <button class="tab-btn" onclick="switchTab(event, 'record')">🎤 음성 녹음</button>
         </div>
 
         <!-- 탭 1: 파일 업로드 -->
@@ -420,17 +420,48 @@
     </div>
 
     <script>
+        const API_BASE = '/api/voice/process';
         let mediaRecorder;
         let recordedChunks = [];
         let isRecording = false;
+        let selectedMimeType = 'audio/webm';
 
         // 탭 전환
-        function switchTab(tabName) {
+        function switchTab(event, tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
             document.getElementById(tabName + '-tab').classList.add('active');
             event.target.classList.add('active');
+        }
+
+        // MediaRecorder 호환 MIME 타입 선택
+        function getCompatibleMimeType() {
+            const mimeTypes = [
+                'audio/webm;codecs=opus',
+                'audio/ogg;codecs=opus',
+                'audio/webm',
+                'audio/ogg',
+                'audio/mp4'
+            ];
+
+            for (const mimeType of mimeTypes) {
+                if (MediaRecorder.isTypeSupported(mimeType)) {
+                    return mimeType;
+                }
+            }
+            return 'audio/webm';
+        }
+
+        // 파일 확장자 가져오기
+        function getMimeTypeExtension(mimeType) {
+            const mimeTypeMap = {
+                'audio/webm': 'webm',
+                'audio/ogg': 'ogg',
+                'audio/mp4': 'm4a',
+                'audio/mpeg': 'mp3'
+            };
+            return mimeTypeMap[mimeType.split(';')[0]] || 'webm';
         }
 
         // ========== 파일 업로드 방식 ==========
@@ -461,7 +492,7 @@
             document.getElementById('loading').style.display = 'block';
             document.getElementById('result').classList.remove('show', 'error');
 
-            fetch('/api/voice/process', {
+            fetch(API_BASE, {
                 method: 'POST',
                 body: formData
             })
@@ -490,7 +521,9 @@
         async function startRecording() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
+                selectedMimeType = getCompatibleMimeType();
+                const options = { mimeType: selectedMimeType };
+                mediaRecorder = new MediaRecorder(stream, options);
                 recordedChunks = [];
 
                 mediaRecorder.ondataavailable = (event) => {
@@ -519,7 +552,7 @@
 
                 mediaRecorder.onstop = () => {
                     isRecording = false;
-                    const audioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+                    const audioBlob = new Blob(recordedChunks, { type: selectedMimeType });
                     const audioUrl = URL.createObjectURL(audioBlob);
 
                     document.getElementById('audioPlayback').src = audioUrl;
@@ -543,15 +576,16 @@
                 return;
             }
 
-            const audioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+            const audioBlob = new Blob(recordedChunks, { type: selectedMimeType });
+            const fileExtension = getMimeTypeExtension(selectedMimeType);
             const formData = new FormData();
-            formData.append('file', audioBlob, 'recording.webm');
+            formData.append('file', audioBlob, `recording.${fileExtension}`);
 
             document.getElementById('submitRecordBtn').disabled = true;
             document.getElementById('loading').style.display = 'block';
             document.getElementById('result').classList.remove('show', 'error');
 
-            fetch('/api/voice/process', {
+            fetch(API_BASE, {
                 method: 'POST',
                 body: formData
             })
