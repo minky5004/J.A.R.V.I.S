@@ -265,7 +265,8 @@ public class VoiceService {
             return audioBase64;
 
         } catch (Exception e) {
-            log.error("음성 변환 중 오류 발생 - 응답: {}", aiResponse, e);
+            int responseLength = (aiResponse != null) ? aiResponse.length() : 0;
+            log.error("음성 변환 중 오류 발생 - 응답 길이: {}글자", responseLength, e);
             return aiResponse;
         }
     }

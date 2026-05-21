@@ -44,8 +44,11 @@ public class VoiceController {
     public ResponseEntity<VoiceProcessResponse> processTest(
         @RequestBody Map<String, String> request
     ) {
+        if (request == null || request.get("text") == null) {
+            throw new IllegalArgumentException("text 필드가 필요합니다.");
+        }
         String text = request.get("text");
-        log.info("테스트 요청 - 텍스트: {}", text);
+        log.info("테스트 요청 - 텍스트 길이: {}글자", text.length());
 
         VoiceData voiceData = voiceService.processText(text);
 

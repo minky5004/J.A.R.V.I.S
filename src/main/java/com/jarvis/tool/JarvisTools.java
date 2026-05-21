@@ -50,7 +50,7 @@ public class JarvisTools {
         try {
             return callOpenAITTSAPI(text);
         } catch (Exception e) {
-            log.error("TTS 변환 실패 - 텍스트: {}", text, e);
+            log.error("TTS 변환 실패 - 텍스트 길이: {}글자", text.length(), e);
             return "음성 변환 중 오류가 발생했습니다.";
         }
     }
@@ -107,6 +107,10 @@ public class JarvisTools {
     }
 
     private String callOpenAITTSAPI(String text) {
+        if (openaiApiKey == null || openaiApiKey.isBlank()) {
+            throw new RuntimeException("OpenAI API 키가 설정되지 않았습니다.");
+        }
+
         try {
             String apiUrl = "https://api.openai.com/v1/audio/speech";
 
@@ -139,7 +143,7 @@ public class JarvisTools {
             return "data:audio/mp3;base64," + base64Audio;
 
         } catch (Exception e) {
-            log.error("OpenAI TTS API 호출 중 오류 - 텍스트: {}", text, e);
+            log.error("OpenAI TTS API 호출 중 오류 - 텍스트 길이: {}글자", text.length(), e);
             throw new RuntimeException("음성 변환 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
