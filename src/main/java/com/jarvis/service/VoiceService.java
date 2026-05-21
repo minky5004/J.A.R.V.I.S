@@ -47,9 +47,9 @@ public class VoiceService {
         String transcript = extractTranscriptFromFile(file);
 
         // 2. ChatClient로 처리 (Tool Calling 포함)
-        String response;
+        String aiResponse;
         try {
-            response = chatClient.prompt()
+            aiResponse = chatClient.prompt()
                 .system("당신은 음성 명령 AI 어시스턴트입니다. 한국어로 친절하게 응답하세요.")
                 .user(transcript)
                 .tools(jarvisTools)
@@ -60,6 +60,9 @@ public class VoiceService {
             throw new VoiceProcessingException("음성 처리 중 오류가 발생했습니다.", e);
         }
 
+        // 3. AI 응답을 자동으로 음성으로 변환
+        String response = convertToAudio(aiResponse);
+
         log.info("음성 처리 완료 - ID: {}", id);
 
         String intent = extractIntent(transcript);
@@ -67,6 +70,7 @@ public class VoiceService {
             .id(id)
             .transcript(transcript)
             .intent(intent)
+            .resultText(aiResponse)
             .result(response)
             .build();
     }
@@ -203,6 +207,67 @@ public class VoiceService {
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("audio/")) {
             throw new InvalidFileException("오디오 파일만 업로드 가능합니다.");
+        }
+    }
+
+    public VoiceData processText(String text) {
+        if (text == null || text.isBlank()) {
+            throw new VoiceProcessingException("텍스트를 입력해주세요.");
+        }
+
+        String id = UUID.randomUUID().toString();
+        log.info("텍스트 처리 시작 - ID: {}, 길이: {}글자", id, text.length());
+
+        // ChatClient로 처리 (Tool Calling 포함)
+        String aiResponse;
+        try {
+            aiResponse = chatClient.prompt()
+                .system("당신은 음성 명령 AI 어시스턴트입니다. 한국어로 친절하게 응답하세요.")
+                .user(text)
+                .tools(jarvisTools)
+                .call()
+                .content();
+        } catch (Exception e) {
+            log.error("ChatClient 처리 중 오류 발생 - ID: {}", id, e);
+            throw new VoiceProcessingException("텍스트 처리 중 오류가 발생했습니다.", e);
+        }
+
+        // AI 응답을 자동으로 음성으로 변환
+        String response = convertToAudio(aiResponse);
+
+        log.info("텍스트 처리 완료 - ID: {}", id);
+
+        String intent = extractIntent(text);
+        return VoiceData.builder()
+            .id(id)
+            .transcript(text)
+            .intent(intent)
+            .resultText(aiResponse)
+            .result(response)
+            .build();
+    }
+
+    private String convertToAudio(String aiResponse) {
+        try {
+            if (aiResponse == null || aiResponse.isEmpty()) {
+                log.warn("AI 응답이 비어있음");
+                return aiResponse;
+            }
+
+            if (aiResponse.startsWith("data:audio/")) {
+                log.debug("AI 응답이 이미 오디오 데이터 - 변환 스킵");
+                return aiResponse;
+            }
+
+            log.debug("AI 응답을 음성으로 변환 중 - 길이: {}글자", aiResponse.length());
+            String audioBase64 = jarvisTools.speakText(aiResponse);
+            log.info("음성 변환 완료 - 오디오 크기: {}bytes", audioBase64.length());
+            return audioBase64;
+
+        } catch (Exception e) {
+            int responseLength = (aiResponse != null) ? aiResponse.length() : 0;
+            log.error("음성 변환 중 오류 발생 - 응답 길이: {}글자", responseLength, e);
+            return aiResponse;
         }
     }
 }
