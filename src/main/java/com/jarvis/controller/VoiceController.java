@@ -8,10 +8,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -31,6 +34,24 @@ public class VoiceController {
         VoiceProcessResponse response = VoiceProcessResponse.builder()
             .success(true)
             .message("음성 파일이 성공적으로 처리되었습니다.")
+            .data(voiceData)
+            .build();
+
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PostMapping("/test")
+    public ResponseEntity<VoiceProcessResponse> processTest(
+        @RequestBody Map<String, String> request
+    ) {
+        String text = request.get("text");
+        log.info("테스트 요청 - 텍스트: {}", text);
+
+        VoiceData voiceData = voiceService.processText(text);
+
+        VoiceProcessResponse response = VoiceProcessResponse.builder()
+            .success(true)
+            .message("테스트 요청이 성공적으로 처리되었습니다.")
             .data(voiceData)
             .build();
 
