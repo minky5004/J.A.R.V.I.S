@@ -33,6 +33,48 @@ public class JarvisTools {
         }
     }
 
+    @Tool(description = "간단한 수학 계산을 수행합니다. 덧셈, 뺄셈, 곱셈, 나눗셈 등. 예: '100 더하기 50', '1000 곱하기 2', '50 나누기 5'")
+    public String calculate(String expression) {
+        if (expression == null || expression.isBlank()) {
+            throw new IllegalArgumentException("계산식을 입력해주세요.");
+        }
+
+        try {
+            return performCalculation(expression);
+        } catch (Exception e) {
+            log.error("계산 실패 - 식: {}", expression, e);
+            return "계산 중 오류가 발생했습니다.";
+        }
+    }
+
+    @Tool(description = "특정 도시의 현재 시간을 조회합니다. 예: '뉴욕', '런던', '도쿄', '시드니'")
+    public String convertTime(String city) {
+        if (city == null || city.isBlank()) {
+            throw new IllegalArgumentException("도시 이름을 입력해주세요.");
+        }
+
+        try {
+            return getTimeInCity(city);
+        } catch (Exception e) {
+            log.error("시간 조회 실패 - 도시: {}", city, e);
+            return "시간 조회 중 오류가 발생했습니다.";
+        }
+    }
+
+    @Tool(description = "단위를 변환합니다. 무게(kg, lbs, g), 거리(m, km, mile, ft), 온도(°C, °F) 등. 예: '100 파운드를 킬로그램으로', '50 화씨를 섭씨로'")
+    public String convertUnit(String value, String fromUnit, String toUnit) {
+        if (value == null || fromUnit == null || toUnit == null) {
+            throw new IllegalArgumentException("값과 단위를 입력해주세요.");
+        }
+
+        try {
+            return performUnitConversion(value, fromUnit, toUnit);
+        } catch (Exception e) {
+            log.error("단위 변환 실패 - 값: {}, {}->{}", value, fromUnit, toUnit, e);
+            return "단위 변환 중 오류가 발생했습니다.";
+        }
+    }
+
     @Tool(description = "텍스트를 다른 언어로 번역합니다. 한국어↔영어, 일본어, 중국어 등 다양한 언어 지원. 예: '안녕하세요'를 '영어'로, '그곳을' '중국어'로")
     public String translate(String text, String targetLanguage) {
         if (text == null || text.isBlank()) {
@@ -186,6 +228,137 @@ public class JarvisTools {
             log.error("MyMemory API 호출 중 오류 - 텍스트: {}, 대상 언어: {}", text, targetLanguage, e);
             throw new RuntimeException("번역 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
+    }
+
+    private String performCalculation(String expression) {
+        try {
+            String normalized = expression
+                .replaceAll("더하기|\\+", "+")
+                .replaceAll("빼기|마이너스|\\-", "-")
+                .replaceAll("곱하기|곱|\\*|×", "*")
+                .replaceAll("나누기|÷|/", "/")
+                .replaceAll("\\s+", "");
+
+            double result = evaluateExpression(normalized);
+            String resultStr = (result == (long) result) ?
+                String.format("%d", (long) result) :
+                String.format("%.2f", result);
+
+            log.info("계산 완료 - 식: {}, 결과: {}", expression, resultStr);
+            return resultStr;
+        } catch (Exception e) {
+            log.error("계산 실패 - 식: {}", expression, e);
+            throw new RuntimeException("계산할 수 없습니다: " + expression);
+        }
+    }
+
+    private double evaluateExpression(String expr) {
+        try {
+            String[] mulDiv = expr.split("(?=[*/])|(?<=[*/])");
+            double result = parseNumber(mulDiv[0].trim());
+
+            for (int i = 1; i < mulDiv.length; i += 2) {
+                String op = mulDiv[i].trim();
+                double nextNum = parseNumber(mulDiv[i + 1].trim());
+                if ("*".equals(op)) result *= nextNum;
+                else if ("/".equals(op)) result /= nextNum;
+            }
+
+            return result;
+        } catch (Exception e) {
+            throw new RuntimeException("Invalid expression: " + expr);
+        }
+    }
+
+    private double parseNumber(String str) {
+        try {
+            return Double.parseDouble(str);
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("Invalid number: " + str);
+        }
+    }
+
+    private String getTimeInCity(String city) {
+        java.time.ZoneId zoneId = switch (city.toLowerCase().replaceAll("\\s+", "")) {
+            case "뉴욕", "newyork", "newyorkusa" -> java.time.ZoneId.of("America/New_York");
+            case "런던", "london" -> java.time.ZoneId.of("Europe/London");
+            case "파리", "paris" -> java.time.ZoneId.of("Europe/Paris");
+            case "도쿄", "tokyo" -> java.time.ZoneId.of("Asia/Tokyo");
+            case "서울", "seoul" -> java.time.ZoneId.of("Asia/Seoul");
+            case "상하이", "shanghai" -> java.time.ZoneId.of("Asia/Shanghai");
+            case "싱가포르", "singapore" -> java.time.ZoneId.of("Asia/Singapore");
+            case "시드니", "sydney" -> java.time.ZoneId.of("Australia/Sydney");
+            case "더빈", "dubai" -> java.time.ZoneId.of("Asia/Dubai");
+            case "방콕", "bangkok" -> java.time.ZoneId.of("Asia/Bangkok");
+            case "홍콩", "hongkong" -> java.time.ZoneId.of("Asia/Hong_Kong");
+            case "뭄바이", "mumbai" -> java.time.ZoneId.of("Asia/Kolkata");
+            case "모스크바", "moscow" -> java.time.ZoneId.of("Europe/Moscow");
+            case "라스베이거스", "losangeles", "la" -> java.time.ZoneId.of("America/Los_Angeles");
+            default -> null;
+        };
+
+        if (zoneId == null) {
+            return city + "의 시간대를 찾을 수 없습니다. (뉴욕, 런던, 도쿄, 시드니 등)";
+        }
+
+        java.time.LocalDateTime now = java.time.LocalDateTime.now(zoneId);
+        String timeStr = now.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss (E)"));
+        log.info("시간 조회 완료 - 도시: {}", city);
+        return String.format("%s의 현재 시간: %s", city, timeStr);
+    }
+
+    private String performUnitConversion(String value, String fromUnit, String toUnit) {
+        try {
+            double numValue = Double.parseDouble(value.replaceAll("[^0-9.-]", ""));
+
+            String normalized_from = normalizeUnit(fromUnit);
+            String normalized_to = normalizeUnit(toUnit);
+
+            double result = convertUnits(numValue, normalized_from, normalized_to);
+            String resultStr = (result == (long) result) ?
+                String.format("%d", (long) result) :
+                String.format("%.2f", result);
+
+            log.info("단위 변환 완료 - {} {} = {} {}", value, fromUnit, resultStr, toUnit);
+            return String.format("%.2f %s = %s %s", numValue, fromUnit, resultStr, toUnit);
+        } catch (Exception e) {
+            log.error("단위 변환 실패 - 값: {}, {} -> {}", value, fromUnit, toUnit, e);
+            throw new RuntimeException("단위 변환에 실패했습니다: " + e.getMessage());
+        }
+    }
+
+    private String normalizeUnit(String unit) {
+        String normalized = unit.toLowerCase().replaceAll("\\s+", "");
+        return switch (normalized) {
+            case "kg", "킬로그램", "킬로" -> "kg";
+            case "g", "그램" -> "g";
+            case "lb", "lbs", "파운드", "pound" -> "lbs";
+            case "oz", "온스", "ounce" -> "oz";
+            case "m", "미터" -> "m";
+            case "cm", "센티미터" -> "cm";
+            case "km", "킬로미터" -> "km";
+            case "mile", "마일" -> "mile";
+            case "ft", "feet", "푸트", "피트" -> "ft";
+            case "c", "celsius", "섭씨", "도" -> "C";
+            case "f", "fahrenheit", "화씨" -> "F";
+            default -> normalized;
+        };
+    }
+
+    private double convertUnits(double value, String from, String to) {
+        return switch (from + "->" + to) {
+            case "kg->lbs" -> value * 2.20462;
+            case "lbs->kg" -> value / 2.20462;
+            case "g->oz" -> value / 28.3495;
+            case "oz->g" -> value * 28.3495;
+            case "m->ft" -> value * 3.28084;
+            case "ft->m" -> value / 3.28084;
+            case "km->mile" -> value / 1.60934;
+            case "mile->km" -> value * 1.60934;
+            case "C->F" -> value * 9/5 + 32;
+            case "F->C" -> (value - 32) * 5/9;
+            default -> value;
+        };
     }
 
     private String convertLanguageNameToCode(String language) {
