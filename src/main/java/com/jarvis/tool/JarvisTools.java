@@ -116,6 +116,20 @@ public class JarvisTools {
         }
     }
 
+    @Tool(description = "텍스트를 음성으로 변환합니다. 긴 텍스트도 음성으로 들을 수 있습니다.")
+    public String speakText(String text) {
+        if (text == null || text.isBlank()) {
+            throw new IllegalArgumentException("음성으로 변환할 텍스트를 입력해주세요.");
+        }
+
+        try {
+            return callOpenAITTSAPI(text);
+        } catch (Exception e) {
+            log.error("TTS 변환 실패 - 텍스트 길이: {}글자", text.length(), e);
+            return "음성 변환 중 오류가 발생했습니다.";
+        }
+    }
+
     private String callOpenMeteoAPI(String city) {
         try {
             String searchCity = convertKoreanCityToEnglish(city);
