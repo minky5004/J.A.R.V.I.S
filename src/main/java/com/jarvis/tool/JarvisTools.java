@@ -85,7 +85,7 @@ public class JarvisTools {
         }
     }
 
-    @Tool(description = "최신 뉴스를 검색합니다. 속보, 기사, 뉴스 등을 실시간으로 조회할 수 있습니다. query는 검색어를 한국어로 전달하세요. 예: '비트코인 뉴스', '날씨 속보'")
+    @Tool(description = "뉴스 검색어로 웹을 검색하고 관련 요약 정보를 제공합니다. query는 검색어를 한국어로 전달하세요. 예: '비트코인 뉴스', '날씨 속보'")
     public String searchNews(String query) {
         try {
             if (query == null || query.isBlank()) {

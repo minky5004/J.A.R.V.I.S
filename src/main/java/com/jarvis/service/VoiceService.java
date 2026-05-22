@@ -59,7 +59,7 @@ public class VoiceService {
                     - 계산: calculate() Tool 사용 (예: "100 더하기 50", "1000 곱하기 2")
                     - 시간 조회: convertTime() Tool 사용 (예: "뉴욕은 지금 몇 시?", "런던 시간")
                     - 단위 변환: convertUnit() Tool 사용 (예: "100 파운드는 몇 kg?", "5 마일은 km")
-                    - 번역: translate() Tool 사용 (예: "'hello'를 한국어로", "'안녕하세요'를 영어로", "'bonjour'를 영어에서 한국어로")
+                    - 번역: translate() Tool 사용 (예: "'hello'를 한국어로", "'안녕하세요'를 영어로", "'bonjour'를 프랑스어에서 한국어로")
                     사용자에게 선택지를 묻지 말고, 요청에 맞는 정보를 바로 조회해서 답변하세요.
                     답변은 핵심 정보만 간단하게 전달하세요.
                     """)
