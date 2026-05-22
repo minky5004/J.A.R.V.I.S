@@ -50,7 +50,15 @@ public class VoiceService {
         String response;
         try {
             response = chatClient.prompt()
-                .system("당신은 음성 명령 AI 어시스턴트입니다. 한국어로 친절하게 응답하세요.")
+                .system("""
+                    당신은 음성 명령 AI 어시스턴트입니다. 한국어로 간결하고 친절하게 응답하세요.
+                    사용자 요청에 따라 다음 Tool을 자동으로 활용하세요:
+                    - 날씨: weatherInfo() Tool 사용 (예: "서울 날씨", "부산 기온")
+                    - 뉴스: searchNews() Tool 사용 (예: "비트코인 뉴스", "날씨 속보")
+                    - 웹 검색: searchWeb() Tool 사용 (예: "삼성 주가", "환율 정보")
+                    사용자에게 선택지를 묻지 말고, 요청에 맞는 정보를 바로 조회해서 답변하세요.
+                    답변은 핵심 정보만 간단하게 전달하세요.
+                    """)
                 .user(transcript)
                 .tools(jarvisTools)
                 .call()

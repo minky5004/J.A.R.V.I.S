@@ -33,7 +33,21 @@ public class JarvisTools {
         }
     }
 
-    @Tool(description = "웹에서 특정 정보를 검색할 때 사용합니다. 뉴스, 정보, 시세 등을 실시간으로 조회할 수 있습니다. query는 검색어를 한국어로 전달하세요.")
+    @Tool(description = "최신 뉴스를 검색합니다. 속보, 기사, 뉴스 등을 실시간으로 조회할 수 있습니다. query는 검색어를 한국어로 전달하세요. 예: '비트코인 뉴스', '날씨 속보'")
+    public String searchNews(String query) {
+        if (query == null || query.isBlank()) {
+            throw new IllegalArgumentException("검색어를 입력해주세요.");
+        }
+
+        try {
+            return callDuckDuckGoAPI(query + " 뉴스");
+        } catch (Exception e) {
+            log.error("뉴스 검색 실패 - 검색어: {}", query, e);
+            return "뉴스 검색 중 오류가 발생했습니다.";
+        }
+    }
+
+    @Tool(description = "웹에서 특정 정보를 검색할 때 사용합니다. 정보, 시세 등을 실시간으로 조회할 수 있습니다. query는 검색어를 한국어로 전달하세요.")
     public String searchWeb(String query) {
         if (query == null || query.isBlank()) {
             throw new IllegalArgumentException("검색어를 입력해주세요.");
