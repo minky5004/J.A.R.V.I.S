@@ -5,12 +5,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -514,6 +519,48 @@ public class JarvisTools {
         } catch (Exception e) {
             log.error("DuckDuckGo API 호출 중 오류 - 검색어: {}", query, e);
             throw new RuntimeException("검색 중 오류가 발생했습니다: " + e.getMessage(), e);
+        }
+    }
+
+    private String callOpenAITTSAPI(String text) {
+        if (openaiApiKey == null || openaiApiKey.isBlank()) {
+            throw new RuntimeException("OpenAI API 키가 설정되지 않았습니다.");
+        }
+
+        try {
+            String apiUrl = "https://api.openai.com/v1/audio/speech";
+
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", "tts-1");
+            requestBody.put("input", text);
+            requestBody.put("voice", "alloy");
+            requestBody.put("response_format", "mp3");
+
+            log.debug("OpenAI TTS API 호출 - 텍스트 길이: {}", text.length());
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + openaiApiKey);
+            headers.set("Content-Type", "application/json");
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            String jsonBody = objectMapper.writeValueAsString(requestBody);
+            HttpEntity<String> entity = new HttpEntity<>(jsonBody, headers);
+
+            ResponseEntity<byte[]> response = restTemplate.exchange(apiUrl, HttpMethod.POST, entity, byte[].class);
+            byte[] audioData = response.getBody();
+
+            if (audioData == null || audioData.length == 0) {
+                log.warn("OpenAI TTS 응답이 비어있음");
+                return "음성 변환에 실패했습니다.";
+            }
+
+            String base64Audio = Base64.getEncoder().encodeToString(audioData);
+            log.info("TTS 변환 완료 - 텍스트 길이: {}, 오디오 크기: {} bytes", text.length(), audioData.length);
+            return "data:audio/mp3;base64," + base64Audio;
+
+        } catch (Exception e) {
+            log.error("OpenAI TTS API 호출 중 오류 - 텍스트 길이: {}글자", text.length(), e);
+            throw new RuntimeException("음성 변환 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
 }
