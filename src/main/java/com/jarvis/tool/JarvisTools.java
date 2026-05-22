@@ -33,6 +33,20 @@ public class JarvisTools {
         }
     }
 
+    @Tool(description = "텍스트를 다른 언어로 번역합니다. 한국어↔영어, 일본어, 중국어 등 다양한 언어 지원. 예: '안녕하세요'를 '영어'로, '그곳을' '중국어'로")
+    public String translate(String text, String targetLanguage) {
+        if (text == null || text.isBlank()) {
+            throw new IllegalArgumentException("번역할 텍스트를 입력해주세요.");
+        }
+
+        try {
+            return callMyMemoryAPI(text, targetLanguage);
+        } catch (Exception e) {
+            log.error("번역 실패 - 텍스트: {}, 대상 언어: {}", text, targetLanguage, e);
+            return "번역 중 오류가 발생했습니다.";
+        }
+    }
+
     @Tool(description = "최신 뉴스를 검색합니다. 속보, 기사, 뉴스 등을 실시간으로 조회할 수 있습니다. query는 검색어를 한국어로 전달하세요. 예: '비트코인 뉴스', '날씨 속보'")
     public String searchNews(String query) {
         if (query == null || query.isBlank()) {
@@ -128,6 +142,66 @@ public class JarvisTools {
             log.error("Open-Meteo API 호출 중 오류 - 도시: {}", city, e);
             throw new RuntimeException("날씨 조회 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
+    }
+
+    private String callMyMemoryAPI(String text, String targetLanguage) {
+        try {
+            String fromLang = "ko";
+            String toLang = convertLanguageNameToCode(targetLanguage);
+
+            String apiUrl = "https://api.mymemory.translated.net/get?q=" +
+                java.net.URLEncoder.encode(text, "UTF-8") +
+                "&langpair=" + fromLang + "|" + toLang;
+
+            log.debug("MyMemory API 호출 - 텍스트: {}, 대상 언어: {}", text, targetLanguage);
+
+            ResponseEntity<String> response = restTemplate.getForEntity(apiUrl, String.class);
+            String responseBody = response.getBody();
+
+            if (responseBody == null || responseBody.isEmpty()) {
+                log.warn("MyMemory API 응답 없음");
+                return "번역을 할 수 없습니다.";
+            }
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode responseJson = objectMapper.readTree(responseBody);
+            JsonNode responseData = responseJson.get("responseData");
+
+            if (responseData == null) {
+                log.warn("MyMemory API 응답 형식 오류");
+                return "번역을 할 수 없습니다.";
+            }
+
+            String translatedText = responseData.get("translatedText").asText();
+
+            if (translatedText == null || translatedText.isBlank()) {
+                log.warn("번역 결과 없음");
+                return "번역을 할 수 없습니다.";
+            }
+
+            log.info("번역 완료 - 원문: {}, 대상 언어: {}", text, targetLanguage);
+            return translatedText;
+
+        } catch (Exception e) {
+            log.error("MyMemory API 호출 중 오류 - 텍스트: {}, 대상 언어: {}", text, targetLanguage, e);
+            throw new RuntimeException("번역 중 오류가 발생했습니다: " + e.getMessage(), e);
+        }
+    }
+
+    private String convertLanguageNameToCode(String language) {
+        return switch (language.toLowerCase().replaceAll("\\s+", "")) {
+            case "한국어", "korean", "ko" -> "ko";
+            case "영어", "english", "en" -> "en";
+            case "일본어", "japanese", "ja" -> "ja";
+            case "중국어", "chinese", "zh" -> "zh";
+            case "스페인어", "spanish", "es" -> "es";
+            case "프랑스어", "french", "fr" -> "fr";
+            case "독일어", "german", "de" -> "de";
+            case "러시아어", "russian", "ru" -> "ru";
+            case "아랍어", "arabic", "ar" -> "ar";
+            case "포르투갈어", "portuguese", "pt" -> "pt";
+            default -> "en";
+        };
     }
 
     private String convertKoreanCityToEnglish(String city) {
