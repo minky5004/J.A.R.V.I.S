@@ -21,11 +21,10 @@ public class JarvisTools {
 
     @Tool(description = "특정 도시의 현재 날씨를 조회합니다. 도시 이름을 입력하면 온도, 날씨, 습도 등의 정보를 반환합니다. 예: '서울', '부산', '뉴욕'")
     public String weatherInfo(String city) {
-        if (city == null || city.isBlank()) {
-            throw new IllegalArgumentException("도시 이름을 입력해주세요.");
-        }
-
         try {
+            if (city == null || city.isBlank()) {
+                throw new IllegalArgumentException("도시 이름을 입력해주세요.");
+            }
             return callOpenMeteoAPI(city);
         } catch (Exception e) {
             log.error("날씨 조회 실패 - 도시: {}", city, e);
@@ -35,11 +34,10 @@ public class JarvisTools {
 
     @Tool(description = "간단한 수학 계산을 수행합니다. 덧셈, 뺄셈, 곱셈, 나눗셈 등. 예: '100 더하기 50', '1000 곱하기 2', '50 나누기 5'")
     public String calculate(String expression) {
-        if (expression == null || expression.isBlank()) {
-            throw new IllegalArgumentException("계산식을 입력해주세요.");
-        }
-
         try {
+            if (expression == null || expression.isBlank()) {
+                throw new IllegalArgumentException("계산식을 입력해주세요.");
+            }
             return performCalculation(expression);
         } catch (Exception e) {
             log.error("계산 실패 - 식: {}", expression, e);
@@ -49,11 +47,10 @@ public class JarvisTools {
 
     @Tool(description = "특정 도시의 현재 시간을 조회합니다. 예: '뉴욕', '런던', '도쿄', '시드니'")
     public String convertTime(String city) {
-        if (city == null || city.isBlank()) {
-            throw new IllegalArgumentException("도시 이름을 입력해주세요.");
-        }
-
         try {
+            if (city == null || city.isBlank()) {
+                throw new IllegalArgumentException("도시 이름을 입력해주세요.");
+            }
             return getTimeInCity(city);
         } catch (Exception e) {
             log.error("시간 조회 실패 - 도시: {}", city, e);
@@ -63,11 +60,10 @@ public class JarvisTools {
 
     @Tool(description = "단위를 변환합니다. 무게(kg, lbs, g), 거리(m, km, mile, ft), 온도(°C, °F) 등. 예: '100 파운드를 킬로그램으로', '50 화씨를 섭씨로'")
     public String convertUnit(String value, String fromUnit, String toUnit) {
-        if (value == null || fromUnit == null || toUnit == null) {
-            throw new IllegalArgumentException("값과 단위를 입력해주세요.");
-        }
-
         try {
+            if (value == null || fromUnit == null || toUnit == null) {
+                throw new IllegalArgumentException("값과 단위를 입력해주세요.");
+            }
             return performUnitConversion(value, fromUnit, toUnit);
         } catch (Exception e) {
             log.error("단위 변환 실패 - 값: {}, {}->{}", value, fromUnit, toUnit, e);
@@ -75,27 +71,26 @@ public class JarvisTools {
         }
     }
 
-    @Tool(description = "텍스트를 다른 언어로 번역합니다. 한국어↔영어, 일본어, 중국어 등 다양한 언어 지원. 예: '안녕하세요'를 '영어'로, '그곳을' '중국어'로")
-    public String translate(String text, String targetLanguage) {
-        if (text == null || text.isBlank()) {
-            throw new IllegalArgumentException("번역할 텍스트를 입력해주세요.");
-        }
-
+    @Tool(description = "텍스트를 다른 언어로 번역합니다. 한국어↔영어, 일본어, 중국어 등 다양한 언어 지원. sourceLanguage 생략 시 한국어로 가정. 예: '안녕하세요'를 '영어'로, 'hello'를 '한국어'로")
+    public String translate(String text, String targetLanguage, String sourceLanguage) {
         try {
-            return callMyMemoryAPI(text, targetLanguage);
+            if (text == null || text.isBlank()) {
+                throw new IllegalArgumentException("번역할 텍스트를 입력해주세요.");
+            }
+            String actualSourceLanguage = (sourceLanguage == null || sourceLanguage.isBlank()) ? "한국어" : sourceLanguage;
+            return callMyMemoryAPI(text, targetLanguage, actualSourceLanguage);
         } catch (Exception e) {
-            log.error("번역 실패 - 텍스트: {}, 대상 언어: {}", text, targetLanguage, e);
+            log.error("번역 실패 - 텍스트: {}, 원본 언어: {}, 대상 언어: {}", text, sourceLanguage, targetLanguage, e);
             return "번역 중 오류가 발생했습니다.";
         }
     }
 
     @Tool(description = "최신 뉴스를 검색합니다. 속보, 기사, 뉴스 등을 실시간으로 조회할 수 있습니다. query는 검색어를 한국어로 전달하세요. 예: '비트코인 뉴스', '날씨 속보'")
     public String searchNews(String query) {
-        if (query == null || query.isBlank()) {
-            throw new IllegalArgumentException("검색어를 입력해주세요.");
-        }
-
         try {
+            if (query == null || query.isBlank()) {
+                throw new IllegalArgumentException("검색어를 입력해주세요.");
+            }
             return callDuckDuckGoAPI(query + " 뉴스");
         } catch (Exception e) {
             log.error("뉴스 검색 실패 - 검색어: {}", query, e);
@@ -105,11 +100,10 @@ public class JarvisTools {
 
     @Tool(description = "웹에서 특정 정보를 검색할 때 사용합니다. 정보, 시세 등을 실시간으로 조회할 수 있습니다. query는 검색어를 한국어로 전달하세요.")
     public String searchWeb(String query) {
-        if (query == null || query.isBlank()) {
-            throw new IllegalArgumentException("검색어를 입력해주세요.");
-        }
-
         try {
+            if (query == null || query.isBlank()) {
+                throw new IllegalArgumentException("검색어를 입력해주세요.");
+            }
             return callDuckDuckGoAPI(query);
         } catch (Exception e) {
             log.error("DuckDuckGo 검색 실패 - 검색어: {}", query, e);
@@ -186,16 +180,23 @@ public class JarvisTools {
         }
     }
 
-    private String callMyMemoryAPI(String text, String targetLanguage) {
+    private String callMyMemoryAPI(String text, String targetLanguage, String sourceLanguage) {
         try {
-            String fromLang = "ko";
+            String fromLang = convertLanguageNameToCode(sourceLanguage);
             String toLang = convertLanguageNameToCode(targetLanguage);
+
+            if (fromLang == null) {
+                throw new RuntimeException("지원하지 않는 원본 언어입니다: " + sourceLanguage);
+            }
+            if (toLang == null) {
+                throw new RuntimeException("지원하지 않는 대상 언어입니다: " + targetLanguage);
+            }
 
             String apiUrl = "https://api.mymemory.translated.net/get?q=" +
                 java.net.URLEncoder.encode(text, "UTF-8") +
                 "&langpair=" + fromLang + "|" + toLang;
 
-            log.debug("MyMemory API 호출 - 텍스트: {}, 대상 언어: {}", text, targetLanguage);
+            log.debug("MyMemory API 호출 - 텍스트: {}, 원본 언어: {}, 대상 언어: {}", text, sourceLanguage, targetLanguage);
 
             ResponseEntity<String> response = restTemplate.getForEntity(apiUrl, String.class);
             String responseBody = response.getBody();
@@ -221,11 +222,11 @@ public class JarvisTools {
                 return "번역을 할 수 없습니다.";
             }
 
-            log.info("번역 완료 - 원문: {}, 대상 언어: {}", text, targetLanguage);
+            log.info("번역 완료 - 원본 언어: {}, 대상 언어: {}", sourceLanguage, targetLanguage);
             return translatedText;
 
         } catch (Exception e) {
-            log.error("MyMemory API 호출 중 오류 - 텍스트: {}, 대상 언어: {}", text, targetLanguage, e);
+            log.error("MyMemory API 호출 중 오류 - 원본 언어: {}, 대상 언어: {}", sourceLanguage, targetLanguage, e);
             throw new RuntimeException("번역 중 오류가 발생했습니다: " + e.getMessage(), e);
         }
     }
@@ -254,20 +255,54 @@ public class JarvisTools {
 
     private double evaluateExpression(String expr) {
         try {
-            String[] mulDiv = expr.split("(?=[*/])|(?<=[*/])");
-            double result = parseNumber(mulDiv[0].trim());
-
-            for (int i = 1; i < mulDiv.length; i += 2) {
-                String op = mulDiv[i].trim();
-                double nextNum = parseNumber(mulDiv[i + 1].trim());
-                if ("*".equals(op)) result *= nextNum;
-                else if ("/".equals(op)) result /= nextNum;
-            }
-
-            return result;
+            return evaluateAddSub(expr);
         } catch (Exception e) {
             throw new RuntimeException("Invalid expression: " + expr);
         }
+    }
+
+    private double evaluateAddSub(String expr) {
+        int lastAddSubIndex = -1;
+        for (int i = expr.length() - 1; i > 0; i--) {
+            char ch = expr.charAt(i);
+            if ((ch == '+' || ch == '-') && Character.isDigit(expr.charAt(i - 1))) {
+                lastAddSubIndex = i;
+                break;
+            }
+        }
+
+        if (lastAddSubIndex == -1) {
+            return evaluateMulDiv(expr);
+        }
+
+        String left = expr.substring(0, lastAddSubIndex);
+        char op = expr.charAt(lastAddSubIndex);
+        String right = expr.substring(lastAddSubIndex + 1);
+
+        double leftVal = evaluateAddSub(left);
+        double rightVal = evaluateMulDiv(right);
+
+        return op == '+' ? leftVal + rightVal : leftVal - rightVal;
+    }
+
+    private double evaluateMulDiv(String expr) {
+        String[] mulDiv = expr.split("(?=[*/])|(?<=[*/])");
+        double result = parseNumber(mulDiv[0].trim());
+
+        for (int i = 1; i < mulDiv.length; i += 2) {
+            String op = mulDiv[i].trim();
+            double nextNum = parseNumber(mulDiv[i + 1].trim());
+            if ("*".equals(op)) {
+                result *= nextNum;
+            } else if ("/".equals(op)) {
+                if (nextNum == 0) {
+                    throw new RuntimeException("0으로 나눌 수 없습니다.");
+                }
+                result /= nextNum;
+            }
+        }
+
+        return result;
     }
 
     private double parseNumber(String str) {
@@ -302,7 +337,7 @@ public class JarvisTools {
         }
 
         java.time.LocalDateTime now = java.time.LocalDateTime.now(zoneId);
-        String timeStr = now.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss (E)"));
+        String timeStr = now.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss (E)").withLocale(java.util.Locale.KOREAN));
         log.info("시간 조회 완료 - 도시: {}", city);
         return String.format("%s의 현재 시간: %s", city, timeStr);
     }
@@ -346,7 +381,11 @@ public class JarvisTools {
     }
 
     private double convertUnits(double value, String from, String to) {
-        return switch (from + "->" + to) {
+        if (from.equalsIgnoreCase(to)) {
+            return value;
+        }
+
+        double result = switch (from + "->" + to) {
             case "kg->lbs" -> value * 2.20462;
             case "lbs->kg" -> value / 2.20462;
             case "g->oz" -> value / 28.3495;
@@ -357,12 +396,21 @@ public class JarvisTools {
             case "mile->km" -> value * 1.60934;
             case "C->F" -> value * 9/5 + 32;
             case "F->C" -> (value - 32) * 5/9;
-            default -> value;
+            default -> Double.NaN;
         };
+
+        if (Double.isNaN(result)) {
+            throw new RuntimeException("지원하지 않는 단위 변환입니다: " + from + " -> " + to);
+        }
+        return result;
     }
 
     private String convertLanguageNameToCode(String language) {
-        return switch (language.toLowerCase().replaceAll("\\s+", "")) {
+        if (language == null || language.isBlank()) {
+            return null;
+        }
+
+        String code = switch (language.toLowerCase().replaceAll("\\s+", "")) {
             case "한국어", "korean", "ko" -> "ko";
             case "영어", "english", "en" -> "en";
             case "일본어", "japanese", "ja" -> "ja";
@@ -373,8 +421,10 @@ public class JarvisTools {
             case "러시아어", "russian", "ru" -> "ru";
             case "아랍어", "arabic", "ar" -> "ar";
             case "포르투갈어", "portuguese", "pt" -> "pt";
-            default -> "en";
+            default -> null;
         };
+
+        return code;
     }
 
     private String convertKoreanCityToEnglish(String city) {
