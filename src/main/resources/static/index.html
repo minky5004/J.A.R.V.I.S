@@ -702,11 +702,8 @@
 
         // 자동 녹음 중지
         function stopRecordingAuto() {
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                mediaRecorder.stop();
-                isRecording = false;
-                console.log('침묵 감지로 자동 중지됨');
-            }
+            console.log('침묵 감지로 자동 중지됨');
+            stopRecording();
         }
 
         // 탭 전환
@@ -835,6 +832,22 @@
                     document.getElementById('recordingIndicator').classList.add('active');
                 };
 
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(recordedChunks, { type: selectedMimeType });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+
+                    document.getElementById('audioPlayback').src = audioUrl;
+                    document.getElementById('audioPreview').classList.add('show');
+                    document.getElementById('submitRecordBtn').style.display = 'block';
+
+                    document.getElementById('startRecordBtn').classList.remove('recording');
+                    document.getElementById('startRecordBtn').disabled = false;
+                    document.getElementById('stopRecordBtn').disabled = true;
+                    document.getElementById('recordingIndicator').classList.remove('active');
+
+                    mediaRecorder.stream.getTracks().forEach(track => track.stop());
+                };
+
                 mediaRecorder.start();
             } catch (error) {
                 showError(`마이크 접근 오류: ${error.message}`);
@@ -860,23 +873,6 @@
                     audioContext = null;
                     analyser = null;
                 }
-
-                mediaRecorder.onstop = () => {
-                    const audioBlob = new Blob(recordedChunks, { type: selectedMimeType });
-                    const audioUrl = URL.createObjectURL(audioBlob);
-
-                    document.getElementById('audioPlayback').src = audioUrl;
-                    document.getElementById('audioPreview').classList.add('show');
-                    document.getElementById('submitRecordBtn').style.display = 'block';
-
-                    document.getElementById('startRecordBtn').classList.remove('recording');
-                    document.getElementById('startRecordBtn').disabled = false;
-                    document.getElementById('stopRecordBtn').disabled = true;
-                    document.getElementById('recordingIndicator').classList.remove('active');
-
-                    // 스트림 중지
-                    mediaRecorder.stream.getTracks().forEach(track => track.stop());
-                };
             }
         }
 

@@ -126,7 +126,7 @@ public class JarvisTools {
             return callOpenAITTSAPI(text);
         } catch (Exception e) {
             log.error("TTS 변환 실패 - 텍스트 길이: {}글자", text.length(), e);
-            return "음성 변환 중 오류가 발생했습니다.";
+            throw new RuntimeException("음성 변환 중 오류가 발생했습니다.", e);
         }
     }
 
