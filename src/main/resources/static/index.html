@@ -598,6 +598,7 @@
         let analyser;
         let animationId;
         let silenceStart = null;
+        let currentAudioUrl = null;
         const SILENCE_THRESHOLD = 30;
         const SILENCE_DURATION = 2000;
         let currentAudioElement = null;
@@ -834,7 +835,14 @@
 
                 mediaRecorder.onstop = () => {
                     const audioBlob = new Blob(recordedChunks, { type: selectedMimeType });
+
+                    // 이전 blob URL 해제 (메모리 누수 방지)
+                    if (currentAudioUrl) {
+                        URL.revokeObjectURL(currentAudioUrl);
+                    }
+
                     const audioUrl = URL.createObjectURL(audioBlob);
+                    currentAudioUrl = audioUrl;
 
                     document.getElementById('audioPlayback').src = audioUrl;
                     document.getElementById('audioPreview').classList.add('show');
