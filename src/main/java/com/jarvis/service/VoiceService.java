@@ -43,26 +43,17 @@ public class VoiceService {
         long fileSize = file.getSize();
         log.info("음성 처리 시작 - ID: {}, 크기: {}bytes", id, fileSize);
 
-        // 1. STT 변환 (현재는 임시)
-        String transcript = extractTranscriptFromFile(file);
+        // 1. STT 변환 + 언어 자동 감지
+        TranscriptionResult transcription = extractTranscriptFromFile(file);
+        String transcript = transcription.text();
+        String language = transcription.language();
+        log.info("감지된 언어: {}", language);
 
         // 2. ChatClient로 처리 (Tool Calling 포함)
         String aiResponse;
         try {
             aiResponse = chatClient.prompt()
-                .system("""
-                    당신은 음성 명령 AI 어시스턴트입니다. 한국어로 간결하고 친절하게 응답하세요.
-                    사용자 요청에 따라 다음 Tool을 자동으로 활용하세요:
-                    - 날씨: weatherInfo() Tool 사용 (예: "서울 날씨", "부산 기온")
-                    - 뉴스: searchNews() Tool 사용 (예: "비트코인 뉴스", "날씨 속보")
-                    - 웹 검색: searchWeb() Tool 사용 (예: "삼성 주가", "환율 정보")
-                    - 계산: calculate() Tool 사용 (예: "100 더하기 50", "1000 곱하기 2")
-                    - 시간 조회: convertTime() Tool 사용 (예: "뉴욕은 지금 몇 시?", "런던 시간")
-                    - 단위 변환: convertUnit() Tool 사용 (예: "100 파운드는 몇 kg?", "5 마일은 km")
-                    - 번역: translate() Tool 사용 (예: "'hello'를 한국어로", "'안녕하세요'를 영어로", "'bonjour'를 프랑스어에서 한국어로")
-                    사용자에게 선택지를 묻지 말고, 요청에 맞는 정보를 바로 조회해서 답변하세요.
-                    답변은 핵심 정보만 간단하게 전달하세요.
-                    """)
+                .system(buildSystemPrompt(language))
                 .user(transcript)
                 .tools(jarvisTools)
                 .call()
@@ -75,12 +66,13 @@ public class VoiceService {
         // 3. AI 응답을 자동으로 음성으로 변환
         String response = convertToAudio(aiResponse);
 
-        log.info("음성 처리 완료 - ID: {}", id);
+        log.info("음성 처리 완료 - ID: {}, 언어: {}", id, language);
 
         String intent = extractIntent(transcript);
         return VoiceData.builder()
             .id(id)
             .transcript(transcript)
+            .language(language)
             .intent(intent)
             .resultText(aiResponse)
             .result(response)
@@ -94,7 +86,7 @@ public class VoiceService {
         return transcript.length() > 50 ? transcript.substring(0, 50) + "..." : transcript;
     }
 
-    private String extractTranscriptFromFile(MultipartFile file) {
+    private TranscriptionResult extractTranscriptFromFile(MultipartFile file) {
         try {
             byte[] fileBytes = file.getBytes();
             String filename = file.getOriginalFilename();
@@ -102,11 +94,11 @@ public class VoiceService {
 
             log.info("Whisper API 호출 시작 - 파일 ID: {}, 크기: {}bytes", fileId, fileBytes.length);
 
-            // OpenAI Whisper API를 통한 음성 인식
-            String transcript = callWhisperAPI(fileBytes, filename);
+            // OpenAI Whisper API를 통한 음성 인식 + 언어 감지
+            TranscriptionResult result = callWhisperAPI(fileBytes, filename);
 
-            log.info("음성 인식 완료 - 텍스트 길이: {}글자", transcript.length());
-            return transcript;
+            log.info("음성 인식 완료 - 텍스트 길이: {}글자, 언어: {}", result.text().length(), result.language());
+            return result;
 
         } catch (Exception e) {
             log.error("Whisper API 호출 실패 - 크기: {}bytes", file.getSize(), e);
@@ -114,13 +106,13 @@ public class VoiceService {
         }
     }
 
-    private String callWhisperAPI(byte[] fileBytes, String filename) {
+    private TranscriptionResult callWhisperAPI(byte[] fileBytes, String filename) {
         try {
             log.debug("Whisper API 호출 - 파일: {}, 크기: {}bytes", filename, fileBytes.length);
 
             String whisperApiUrl = "https://api.openai.com/v1/audio/transcriptions";
 
-            // Multipart form-data 구성
+            // Multipart form-data 구성 (language 파라미터 제거 → Whisper 자동 감지)
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("file", new ByteArrayResource(fileBytes) {
                 @Override
@@ -129,7 +121,7 @@ public class VoiceService {
                 }
             });
             body.add("model", "whisper-1");
-            body.add("language", "ko");
+            body.add("response_format", "verbose_json");
 
             // HTTP 헤더 설정
             HttpHeaders headers = new HttpHeaders();
@@ -140,7 +132,7 @@ public class VoiceService {
             HttpEntity<MultiValueMap<String, Object>> requestEntity =
                 new HttpEntity<>(body, headers);
 
-            log.info("Whisper API 요청 전송");
+            log.info("Whisper API 요청 전송 (언어 자동 감지 모드)");
 
             // REST API 호출
             ResponseEntity<String> response = restTemplate.postForEntity(
@@ -172,8 +164,14 @@ public class VoiceService {
                 throw new VoiceProcessingException("음성 인식에 실패했습니다. 다시 시도해주세요.");
             }
 
-            log.info("음성 인식 성공 - 텍스트 길이: {}글자", transcript.length());
-            return transcript;
+            // language 필드 추출 (Whisper가 자동 감지한 언어, 없거나 빈 문자열이면 "ko" 기본값)
+            JsonNode languageNode = responseJson.get("language");
+            String language = (languageNode != null && !languageNode.asText().isBlank())
+                ? languageNode.asText()
+                : "ko";
+
+            log.info("음성 인식 성공 - 텍스트 길이: {}글자, 감지 언어: {}", transcript.length(), language);
+            return new TranscriptionResult(transcript, language);
 
         } catch (Exception e) {
             log.error("Whisper API 호출 중 오류 - 파일 크기: {}bytes", fileBytes.length, e);
@@ -228,13 +226,14 @@ public class VoiceService {
         }
 
         String id = UUID.randomUUID().toString();
-        log.info("텍스트 처리 시작 - ID: {}, 길이: {}글자", id, text.length());
+        String language = detectLanguageFromText(text);
+        log.info("텍스트 처리 시작 - ID: {}, 길이: {}글자, 감지 언어: {}", id, text.length(), language);
 
         // ChatClient로 처리 (Tool Calling 포함)
         String aiResponse;
         try {
             aiResponse = chatClient.prompt()
-                .system("당신은 음성 명령 AI 어시스턴트입니다. 한국어로 친절하게 응답하세요.")
+                .system(buildSystemPrompt(language))
                 .user(text)
                 .tools(jarvisTools)
                 .call()
@@ -247,17 +246,80 @@ public class VoiceService {
         // AI 응답을 자동으로 음성으로 변환
         String response = convertToAudio(aiResponse);
 
-        log.info("텍스트 처리 완료 - ID: {}", id);
+        log.info("텍스트 처리 완료 - ID: {}, 언어: {}", id, language);
 
         String intent = extractIntent(text);
         return VoiceData.builder()
             .id(id)
             .transcript(text)
+            .language(language)
             .intent(intent)
             .resultText(aiResponse)
             .result(response)
             .build();
     }
+
+    /**
+     * 감지된 언어 코드에 맞는 시스템 프롬프트를 생성합니다.
+     */
+    private String buildSystemPrompt(String language) {
+        String responseLanguage = switch (language != null ? language : "ko") {
+            case "en" -> "English";
+            case "ja" -> "日本語";
+            case "zh" -> "中文";
+            default  -> "한국어";
+        };
+
+        return String.format("""
+            You are a voice command AI assistant. Please respond in %s concisely and kindly.
+            Use the following tools automatically based on the user's request:
+            - Weather: use weatherInfo() tool (e.g., "Seoul weather", "서울 날씨")
+            - News: use searchNews() tool (e.g., "Bitcoin news", "비트코인 뉴스")
+            - Web search: use searchWeb() tool (e.g., "Samsung stock", "삼성 주가")
+            - Calculation: use calculate() tool (e.g., "100 plus 50", "100 더하기 50")
+            - Time: use convertTime() tool (e.g., "What time is it in New York?", "뉴욕은 몇 시?")
+            - Unit conversion: use convertUnit() tool (e.g., "100 pounds to kg", "100 파운드는 몇 kg?")
+            - Translation: use translate() tool (e.g., "translate 'hello' to Korean", "'hello'를 한국어로")
+            Do not ask the user for choices — look up the information and answer directly.
+            Keep your answer concise with only the key information.
+            """, responseLanguage);
+    }
+
+    /**
+     * 텍스트에서 문자 범위로 언어를 감지합니다. (processText 전용)
+     * 한국어(ko), 일본어(ja), 중국어(zh), 영어(en) 감지 지원
+     */
+    private String detectLanguageFromText(String text) {
+        long koreanChars = text.chars()
+            .filter(c -> (c >= 0xAC00 && c <= 0xD7A3) || (c >= 0x1100 && c <= 0x11FF))
+            .count();
+        if (koreanChars > 0) {
+            return "ko";
+        }
+
+        // 일본어 히라가나/가타카나 검사
+        long japaneseChars = text.chars()
+            .filter(c -> (c >= 0x3040 && c <= 0x309F) || (c >= 0x30A0 && c <= 0x30FF))
+            .count();
+        if (japaneseChars > 0) {
+            return "ja";
+        }
+
+        // 중국어 CJK 한자 검사 (일본어 가나 없이 한자만 있는 경우)
+        long cjkChars = text.chars()
+            .filter(c -> (c >= 0x4E00 && c <= 0x9FFF))
+            .count();
+        if (cjkChars > 0) {
+            return "zh";
+        }
+
+        return "en";
+    }
+
+    /**
+     * Whisper API 응답을 담는 레코드 (텍스트 + 감지된 언어 코드)
+     */
+    private record TranscriptionResult(String text, String language) {}
 
     private String convertToAudio(String aiResponse) {
         try {
