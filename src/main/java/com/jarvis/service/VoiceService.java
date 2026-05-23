@@ -121,6 +121,7 @@ public class VoiceService {
                 }
             });
             body.add("model", "whisper-1");
+            body.add("response_format", "verbose_json");
 
             // HTTP 헤더 설정
             HttpHeaders headers = new HttpHeaders();
@@ -283,14 +284,34 @@ public class VoiceService {
     }
 
     /**
-     * 텍스트에서 한글 문자 비율로 언어를 추정합니다. (processText 전용)
-     * Whisper를 거치지 않는 텍스트 입력에 사용됩니다.
+     * 텍스트에서 문자 범위로 언어를 감지합니다. (processText 전용)
+     * 한국어(ko), 일본어(ja), 중국어(zh), 영어(en) 감지 지원
      */
     private String detectLanguageFromText(String text) {
         long koreanChars = text.chars()
             .filter(c -> (c >= 0xAC00 && c <= 0xD7A3) || (c >= 0x1100 && c <= 0x11FF))
             .count();
-        return koreanChars > 0 ? "ko" : "en";
+        if (koreanChars > 0) {
+            return "ko";
+        }
+
+        // 일본어 히라가나/가타카나 검사
+        long japaneseChars = text.chars()
+            .filter(c -> (c >= 0x3040 && c <= 0x309F) || (c >= 0x30A0 && c <= 0x30FF))
+            .count();
+        if (japaneseChars > 0) {
+            return "ja";
+        }
+
+        // 중국어 CJK 한자 검사 (일본어 가나 없이 한자만 있는 경우)
+        long cjkChars = text.chars()
+            .filter(c -> (c >= 0x4E00 && c <= 0x9FFF))
+            .count();
+        if (cjkChars > 0) {
+            return "zh";
+        }
+
+        return "en";
     }
 
     /**
