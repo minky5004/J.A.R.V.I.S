@@ -12,6 +12,26 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --primary: #667eea;
+            --primary-dark: #764ba2;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --text-primary: #333333;
+            --text-secondary: #666666;
+            --border-color: #f0f0f0;
+        }
+
+        body.dark-mode {
+            --primary: #667eea;
+            --primary-dark: #764ba2;
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #2d2d2d;
+            --text-primary: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --border-color: #404040;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -20,39 +40,69 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
+            transition: background 0.3s;
+        }
+
+        body.dark-mode {
+            background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
         }
 
         .container {
-            background: white;
+            background: var(--bg-primary);
             border-radius: 12px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             max-width: 550px;
             width: 100%;
             padding: 40px;
+            transition: background 0.3s;
         }
 
         .header {
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 30px;
+        }
+
+        .header-title {
+            flex: 1;
+            text-align: center;
         }
 
         .header h1 {
             font-size: 32px;
-            color: #333;
+            color: var(--text-primary);
             margin-bottom: 8px;
             font-weight: 700;
+            transition: color 0.3s;
         }
 
         .header p {
-            color: #666;
+            color: var(--text-secondary);
             font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            background: var(--bg-secondary);
         }
 
         .tabs {
             display: flex;
             gap: 10px;
             margin-bottom: 30px;
-            border-bottom: 2px solid #f0f0f0;
+            border-bottom: 2px solid var(--border-color);
+            transition: border-color 0.3s;
         }
 
         .tab-btn {
@@ -64,13 +114,13 @@
             cursor: pointer;
             font-size: 15px;
             font-weight: 600;
-            color: #999;
+            color: var(--text-secondary);
             transition: all 0.3s;
         }
 
         .tab-btn.active {
-            color: #667eea;
-            border-bottom-color: #667eea;
+            color: var(--primary);
+            border-bottom-color: var(--primary);
         }
 
         .tab-content {
@@ -82,14 +132,15 @@
         }
 
         .info-box {
-            background: #e7f3ff;
-            border-left: 4px solid #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 4px solid var(--primary);
             padding: 12px;
             border-radius: 4px;
             font-size: 13px;
-            color: #333;
+            color: var(--text-primary);
             margin-bottom: 20px;
             line-height: 1.5;
+            transition: all 0.3s;
         }
 
         .form-group {
@@ -100,8 +151,9 @@
             display: block;
             margin-bottom: 8px;
             font-weight: 500;
-            color: #333;
+            color: var(--text-primary);
             font-size: 14px;
+            transition: color 0.3s;
         }
 
         .file-input-wrapper {
@@ -119,26 +171,27 @@
         .file-input-label {
             display: block;
             padding: 12px 16px;
-            background: #f5f5f5;
-            border: 2px dashed #667eea;
+            background: var(--bg-secondary);
+            border: 2px dashed var(--primary);
             border-radius: 8px;
             cursor: pointer;
             text-align: center;
             transition: all 0.3s;
-            color: #667eea;
+            color: var(--primary);
             font-weight: 500;
         }
 
         .file-input-label:hover {
-            background: #f0f0ff;
-            border-color: #764ba2;
+            background: rgba(102, 126, 234, 0.1);
+            border-color: var(--primary-dark);
         }
 
         .file-name {
             margin-top: 8px;
             font-size: 13px;
-            color: #666;
+            color: var(--text-secondary);
             display: none;
+            transition: color 0.3s;
         }
 
         .file-name.show {
@@ -146,7 +199,7 @@
         }
 
         .file-name strong {
-            color: #333;
+            color: var(--text-primary);
         }
 
         /* 음성 녹음 탭 */
@@ -159,7 +212,7 @@
         .record-btn {
             flex: 1;
             padding: 14px;
-            background: #667eea;
+            background: var(--primary);
             color: white;
             border: none;
             border-radius: 8px;
@@ -174,7 +227,7 @@
         }
 
         .record-btn:hover:not(:disabled) {
-            background: #764ba2;
+            background: var(--primary-dark);
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
         }
@@ -239,7 +292,7 @@
         button {
             width: 100%;
             padding: 12px 16px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
             border: none;
             border-radius: 8px;
@@ -281,13 +334,87 @@
             100% { transform: rotate(360deg); }
         }
 
+        /* 음성 파형 시각화 */
+        .waveform-container {
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .waveform-container.show {
+            display: block;
+        }
+
+        #waveformCanvas {
+            width: 100%;
+            height: 100px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s;
+        }
+
+        .silence-timer {
+            margin-top: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .silence-timer.detecting {
+            color: #ff6b6b;
+            font-weight: 600;
+        }
+
+        /* TTS 속도 조절 */
+        .tts-controls {
+            margin-bottom: 16px;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            display: none;
+        }
+
+        .tts-controls.show {
+            display: block;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .speed-control label {
+            margin: 0;
+            min-width: 100px;
+            font-size: 13px;
+        }
+
+        .speed-control input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .speed-value {
+            min-width: 45px;
+            text-align: right;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
         .result {
             margin-top: 30px;
             display: none;
             padding: 20px;
-            background: #f5f5f5;
+            background: var(--bg-secondary);
             border-radius: 8px;
-            border-left: 4px solid #667eea;
+            border-left: 4px solid var(--primary);
+            transition: all 0.3s;
         }
 
         .result.show {
@@ -296,15 +423,16 @@
 
         .result.error {
             border-left-color: #ff6b6b;
-            background: #fff5f5;
+            background: rgba(255, 107, 107, 0.1);
         }
 
         .result h3 {
             font-size: 14px;
-            color: #333;
+            color: var(--text-primary);
             margin-bottom: 12px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            transition: color 0.3s;
         }
 
         .result-item {
@@ -316,7 +444,7 @@
             display: inline;
             margin: 0;
             font-weight: 600;
-            color: #666;
+            color: var(--text-secondary);
         }
 
         .result-item.success {
@@ -329,24 +457,29 @@
 
         .result-content {
             padding: 12px;
-            background: white;
+            background: var(--bg-primary);
             border-radius: 4px;
             margin-top: 8px;
             font-size: 13px;
             line-height: 1.6;
             max-height: 200px;
             overflow-y: auto;
-            color: #333;
+            color: var(--text-primary);
             word-break: break-word;
             white-space: pre-wrap;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎤 J.A.R.V.I.S</h1>
-            <p>음성 AI 어시스턴트</p>
+            <div class="header-title">
+                <h1>🎤 J.A.R.V.I.S</h1>
+                <p>음성 AI 어시스턴트</p>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()" title="테마 토글">🌙</button>
         </div>
 
         <!-- 탭 메뉴 -->
@@ -397,6 +530,11 @@
                 </button>
             </div>
 
+            <div class="waveform-container" id="waveformContainer">
+                <canvas id="waveformCanvas"></canvas>
+                <div class="silence-timer" id="silenceTimer"></div>
+            </div>
+
             <div class="audio-preview" id="audioPreview">
                 <label>녹음된 음성 미리듣기:</label>
                 <audio id="audioPlayback" controls></audio>
@@ -431,7 +569,16 @@
         <!-- 로딩 -->
         <div class="loading" id="loading">
             <div class="spinner"></div>
-            <p style="margin-top: 12px; color: #666; font-size: 13px;">처리 중...</p>
+            <p style="margin-top: 12px; color: var(--text-secondary); font-size: 13px;">처리 중...</p>
+        </div>
+
+        <!-- TTS 속도 조절 -->
+        <div class="tts-controls" id="ttsControls">
+            <div class="speed-control">
+                <label>재생 속도:</label>
+                <input type="range" id="speedSlider" min="0.5" max="2" step="0.25" value="1" onchange="updatePlaybackSpeed(this.value)">
+                <span class="speed-value" id="speedValue">1.0x</span>
+            </div>
         </div>
 
         <!-- 결과 -->
@@ -447,6 +594,118 @@
         let recordedChunks = [];
         let isRecording = false;
         let selectedMimeType = 'audio/webm';
+        let audioContext;
+        let analyser;
+        let animationId;
+        let silenceStart = null;
+        let currentAudioUrl = null;
+        const SILENCE_THRESHOLD = 30;
+        const SILENCE_DURATION = 2000;
+        let currentAudioElement = null;
+
+        // 다크모드 토글
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            const themeBtn = document.querySelector('.theme-toggle');
+            themeBtn.textContent = isDark ? '☀️' : '🌙';
+        }
+
+        // 초기화: 저장된 테마 불러오기
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark' || (savedTheme === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.body.classList.add('dark-mode');
+                document.querySelector('.theme-toggle').textContent = '☀️';
+            }
+        }
+
+        // TTS 재생 속도 업데이트
+        function updatePlaybackSpeed(speed) {
+            document.getElementById('speedValue').textContent = speed + 'x';
+            if (currentAudioElement) {
+                currentAudioElement.playbackRate = parseFloat(speed);
+            }
+        }
+
+        // 파형 그리기
+        function drawWaveform() {
+            const canvas = document.getElementById('waveformCanvas');
+            if (!canvas || !analyser) return;
+
+            const canvasCtx = canvas.getContext('2d');
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            canvasCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg-secondary');
+            canvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const bars = 100;
+            const barWidth = canvas.width / bars;
+            let maxValue = 0;
+
+            for (let i = 0; i < bars; i++) {
+                const dataIndex = Math.floor(i * (bufferLength / bars));
+                const value = dataArray[dataIndex];
+                maxValue = Math.max(maxValue, value);
+            }
+
+            canvasCtx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--primary');
+            for (let i = 0; i < bars; i++) {
+                const dataIndex = Math.floor(i * (bufferLength / bars));
+                const value = dataArray[dataIndex];
+                const height = (value / 255) * canvas.height;
+                const y = canvas.height - height;
+
+                canvasCtx.fillRect(i * barWidth + 1, y, barWidth - 2, height);
+            }
+
+            // 침묵 감지
+            if (isRecording) {
+                checkSilence(maxValue);
+            }
+
+            animationId = requestAnimationFrame(drawWaveform);
+        }
+
+        // 침묵 감지
+        function checkSilence(value) {
+            const isSilent = value < SILENCE_THRESHOLD;
+
+            if (isSilent) {
+                if (!silenceStart) {
+                    silenceStart = Date.now();
+                }
+
+                const silenceDuration = Date.now() - silenceStart;
+                const remainingTime = Math.max(0, Math.ceil((SILENCE_DURATION - silenceDuration) / 1000));
+
+                if (remainingTime > 0) {
+                    document.getElementById('silenceTimer').classList.add('detecting');
+                    document.getElementById('silenceTimer').textContent = `침묵 감지됨: ${remainingTime}초 후 자동 전송`;
+                }
+
+                if (silenceDuration > SILENCE_DURATION) {
+                    document.getElementById('silenceTimer').classList.remove('detecting');
+                    stopRecordingAuto();
+                }
+            } else {
+                silenceStart = null;
+                document.getElementById('silenceTimer').classList.remove('detecting');
+                document.getElementById('silenceTimer').textContent = '';
+            }
+        }
+
+        // 자동 녹음 중지
+        function stopRecordingAuto() {
+            console.log('침묵 감지로 자동 중지됨');
+            stopRecording();
+        }
 
         // 탭 전환
         function switchTab(event, tabName) {
@@ -548,6 +807,18 @@
                 mediaRecorder = new MediaRecorder(stream, options);
                 recordedChunks = [];
 
+                // AudioContext 초기화 (파형 시각화용)
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                const source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+
+                // 파형 시각화 시작
+                document.getElementById('waveformContainer').classList.add('show');
+                silenceStart = null;
+                drawWaveform();
+
                 mediaRecorder.ondataavailable = (event) => {
                     if (event.data.size > 0) {
                         recordedChunks.push(event.data);
@@ -562,20 +833,16 @@
                     document.getElementById('recordingIndicator').classList.add('active');
                 };
 
-                mediaRecorder.start();
-            } catch (error) {
-                showError(`마이크 접근 오류: ${error.message}`);
-            }
-        }
-
-        function stopRecording() {
-            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-                mediaRecorder.stop();
-
                 mediaRecorder.onstop = () => {
-                    isRecording = false;
                     const audioBlob = new Blob(recordedChunks, { type: selectedMimeType });
+
+                    // 이전 blob URL 해제 (메모리 누수 방지)
+                    if (currentAudioUrl) {
+                        URL.revokeObjectURL(currentAudioUrl);
+                    }
+
                     const audioUrl = URL.createObjectURL(audioBlob);
+                    currentAudioUrl = audioUrl;
 
                     document.getElementById('audioPlayback').src = audioUrl;
                     document.getElementById('audioPreview').classList.add('show');
@@ -586,9 +853,34 @@
                     document.getElementById('stopRecordBtn').disabled = true;
                     document.getElementById('recordingIndicator').classList.remove('active');
 
-                    // 스트림 중지
                     mediaRecorder.stream.getTracks().forEach(track => track.stop());
                 };
+
+                mediaRecorder.start();
+            } catch (error) {
+                showError(`마이크 접근 오류: ${error.message}`);
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                isRecording = false;
+
+                // 파형 시각화 중지
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+                document.getElementById('waveformContainer').classList.remove('show');
+                document.getElementById('silenceTimer').classList.remove('detecting');
+                document.getElementById('silenceTimer').textContent = '';
+
+                // AudioContext 종료
+                if (audioContext) {
+                    audioContext.close();
+                    audioContext = null;
+                    analyser = null;
+                }
             }
         }
 
@@ -656,19 +948,34 @@
                 `;
             }
 
-            // 음성 응답 표시
+            // 음성 응답 표시 및 TTS 속도 조절
             if (isAudioData) {
                 responseHtml += `
                     <div class="result-item">
                         <label>AI 응답 (음성):</label>
                         <div class="result-content">
-                            <audio controls autoplay style="width: 100%; margin: 8px 0;">
+                            <audio id="resultAudio" controls autoplay style="width: 100%; margin: 8px 0;">
                                 <source src="${audioData}" type="audio/mp3">
                                 브라우저가 음성 재생을 지원하지 않습니다.
                             </audio>
                         </div>
                     </div>
                 `;
+
+                // TTS 컨트롤 표시
+                document.getElementById('ttsControls').classList.add('show');
+
+                // 결과 표시 후 audio 요소 설정
+                setTimeout(() => {
+                    const audioElement = document.getElementById('resultAudio');
+                    if (audioElement) {
+                        currentAudioElement = audioElement;
+                        audioElement.playbackRate = parseFloat(document.getElementById('speedSlider').value);
+                    }
+                }, 100);
+            } else {
+                document.getElementById('ttsControls').classList.remove('show');
+                currentAudioElement = null;
             }
 
             resultContent.innerHTML = `
@@ -783,6 +1090,9 @@
                 showError(`네트워크 오류: ${error.message}`);
             });
         }
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', initTheme);
     </script>
 </body>
 </html>

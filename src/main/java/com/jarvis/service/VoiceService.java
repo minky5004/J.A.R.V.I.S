@@ -49,7 +49,7 @@ public class VoiceService {
         // 2. ChatClient로 처리 (Tool Calling 포함)
         String aiResponse;
         try {
-            response = chatClient.prompt()
+            aiResponse = chatClient.prompt()
                 .system("""
                     당신은 음성 명령 AI 어시스턴트입니다. 한국어로 간결하고 친절하게 응답하세요.
                     사용자 요청에 따라 다음 Tool을 자동으로 활용하세요:
