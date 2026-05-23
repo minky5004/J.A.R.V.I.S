@@ -24,6 +24,9 @@ public class JarvisTools {
 
     private final RestTemplate restTemplate;
 
+    @Value("${spring.ai.openai.api-key}")
+    private String openaiApiKey;
+
     @Tool(description = "특정 도시의 현재 날씨를 조회합니다. 도시 이름을 입력하면 온도, 날씨, 습도 등의 정보를 반환합니다. 예: '서울', '부산', '뉴욕'")
     public String weatherInfo(String city) {
         try {
