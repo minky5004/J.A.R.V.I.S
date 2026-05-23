@@ -164,9 +164,11 @@ public class VoiceService {
                 throw new VoiceProcessingException("음성 인식에 실패했습니다. 다시 시도해주세요.");
             }
 
-            // language 필드 추출 (Whisper가 자동 감지한 언어, 없으면 "ko" 기본값)
+            // language 필드 추출 (Whisper가 자동 감지한 언어, 없거나 빈 문자열이면 "ko" 기본값)
             JsonNode languageNode = responseJson.get("language");
-            String language = (languageNode != null) ? languageNode.asText() : "ko";
+            String language = (languageNode != null && !languageNode.asText().isBlank())
+                ? languageNode.asText()
+                : "ko";
 
             log.info("음성 인식 성공 - 텍스트 길이: {}글자, 감지 언어: {}", transcript.length(), language);
             return new TranscriptionResult(transcript, language);
