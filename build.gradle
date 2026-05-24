@@ -48,6 +48,10 @@ dependencies {
     // JSON Processing
     implementation 'com.google.code.gson:gson:2.10.1'
 
+    // Database
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    runtimeOnly 'org.postgresql:postgresql:42.7.1'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
