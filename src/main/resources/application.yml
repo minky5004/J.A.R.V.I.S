@@ -1,6 +1,19 @@
 spring:
   application:
     name: jarvis
+  datasource:
+    url: jdbc:postgresql://localhost:5432/jarvis
+    username: jarvis
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
