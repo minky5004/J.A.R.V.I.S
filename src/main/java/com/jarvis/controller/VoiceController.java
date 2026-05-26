@@ -6,6 +6,7 @@ import com.jarvis.service.VoiceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -56,18 +57,30 @@ public class VoiceController {
         );
     }
 
-    @PostMapping("/process-stream")
+    @PostMapping(value = "/process-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter processVoiceStream(
         @RequestParam("file") MultipartFile file,
         @RequestParam(value = "sessionId", required = false) String sessionId
     ) {
         log.info("음성 스트리밍 처리 요청 - 크기: {}bytes, sessionId: {}", file.getSize(), sessionId);
         SseEmitter emitter = new SseEmitter(300000L);
+
+        emitter.onTimeout(() -> {
+            log.warn("음성 스트리밍 타임아웃");
+            try {
+                emitter.complete();
+            } catch (Exception e) {
+                log.error("타임아웃 처리 실패", e);
+            }
+        });
+        emitter.onError(e -> log.error("음성 스트리밍 에러", e));
+        emitter.onCompletion(() -> log.info("음성 스트리밍 완료"));
+
         voiceService.processVoiceStreamAsync(file, sessionId, emitter);
         return emitter;
     }
 
-    @PostMapping("/test-stream")
+    @PostMapping(value = "/test-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter processTestStream(
         @RequestBody Map<String, String> request
     ) {
@@ -79,6 +92,18 @@ public class VoiceController {
         log.info("테스트 스트리밍 요청 - 텍스트 길이: {}글자, sessionId: {}", text.length(), sessionId);
 
         SseEmitter emitter = new SseEmitter(300000L);
+
+        emitter.onTimeout(() -> {
+            log.warn("텍스트 스트리밍 타임아웃");
+            try {
+                emitter.complete();
+            } catch (Exception e) {
+                log.error("타임아웃 처리 실패", e);
+            }
+        });
+        emitter.onError(e -> log.error("텍스트 스트리밍 에러", e));
+        emitter.onCompletion(() -> log.info("텍스트 스트리밍 완료"));
+
         voiceService.processTextStreamAsync(text, sessionId, emitter);
         return emitter;
     }
