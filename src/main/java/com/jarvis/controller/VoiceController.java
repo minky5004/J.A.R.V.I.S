@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.Map;
 
@@ -53,5 +54,32 @@ public class VoiceController {
         return ResponseEntity.status(HttpStatus.OK).body(
             VoiceProcessResponse.success("테스트 요청이 성공적으로 처리되었습니다.", voiceData)
         );
+    }
+
+    @PostMapping("/process-stream")
+    public SseEmitter processVoiceStream(
+        @RequestParam("file") MultipartFile file,
+        @RequestParam(value = "sessionId", required = false) String sessionId
+    ) {
+        log.info("음성 스트리밍 처리 요청 - 크기: {}bytes, sessionId: {}", file.getSize(), sessionId);
+        SseEmitter emitter = new SseEmitter(300000L);
+        voiceService.processVoiceStreamAsync(file, sessionId, emitter);
+        return emitter;
+    }
+
+    @PostMapping("/test-stream")
+    public SseEmitter processTestStream(
+        @RequestBody Map<String, String> request
+    ) {
+        if (request == null || request.get("text") == null) {
+            throw new IllegalArgumentException("text 필드가 필요합니다.");
+        }
+        String text = request.get("text");
+        String sessionId = request.get("sessionId");
+        log.info("테스트 스트리밍 요청 - 텍스트 길이: {}글자, sessionId: {}", text.length(), sessionId);
+
+        SseEmitter emitter = new SseEmitter(300000L);
+        voiceService.processTextStreamAsync(text, sessionId, emitter);
+        return emitter;
     }
 }
