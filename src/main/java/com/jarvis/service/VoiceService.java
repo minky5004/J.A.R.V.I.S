@@ -2,6 +2,7 @@ package com.jarvis.service;
 
 import com.jarvis.config.VoiceConfig;
 import com.jarvis.dto.VoiceData;
+import com.jarvis.entity.ConversationRole;
 import com.jarvis.exception.InvalidFileException;
 import com.jarvis.exception.VoiceProcessingException;
 import com.jarvis.tool.JarvisTools;
@@ -32,22 +33,29 @@ public class VoiceService {
     private final ChatClient chatClient;
     private final JarvisTools jarvisTools;
     private final RestTemplate restTemplate;
+    private final ConversationService conversationService;
 
     @Value("${spring.ai.openai.api-key}")
     private String openAiApiKey;
 
-    public VoiceData processVoice(MultipartFile file) {
+    public VoiceData processVoice(MultipartFile file, String sessionId) {
         validateFile(file);
 
         String id = UUID.randomUUID().toString();
+        if (sessionId == null || sessionId.isBlank()) {
+            sessionId = UUID.randomUUID().toString();
+        }
         long fileSize = file.getSize();
-        log.info("음성 처리 시작 - ID: {}, 크기: {}bytes", id, fileSize);
+        log.info("음성 처리 시작 - ID: {}, sessionId: {}, 크기: {}bytes", id, sessionId, fileSize);
 
         // 1. STT 변환 + 언어 자동 감지
         TranscriptionResult transcription = extractTranscriptFromFile(file);
         String transcript = transcription.text();
         String language = transcription.language();
         log.info("감지된 언어: {}", language);
+
+        // 사용자 메시지 저장
+        conversationService.saveMessage(sessionId, transcript, ConversationRole.USER);
 
         // 2. ChatClient로 처리 (Tool Calling 포함)
         String aiResponse;
@@ -63,14 +71,18 @@ public class VoiceService {
             throw new VoiceProcessingException("음성 처리 중 오류가 발생했습니다.", e);
         }
 
+        // AI 응답 저장
+        conversationService.saveMessage(sessionId, aiResponse, ConversationRole.ASSISTANT);
+
         // 3. AI 응답을 자동으로 음성으로 변환
         String response = convertToAudio(aiResponse);
 
-        log.info("음성 처리 완료 - ID: {}, 언어: {}", id, language);
+        log.info("음성 처리 완료 - ID: {}, 언어: {}, sessionId: {}", id, language, sessionId);
 
         String intent = extractIntent(transcript);
         return VoiceData.builder()
             .id(id)
+            .sessionId(sessionId)
             .transcript(transcript)
             .language(language)
             .intent(intent)
@@ -220,14 +232,20 @@ public class VoiceService {
         }
     }
 
-    public VoiceData processText(String text) {
+    public VoiceData processText(String text, String sessionId) {
         if (text == null || text.isBlank()) {
             throw new VoiceProcessingException("텍스트를 입력해주세요.");
         }
 
         String id = UUID.randomUUID().toString();
+        if (sessionId == null || sessionId.isBlank()) {
+            sessionId = UUID.randomUUID().toString();
+        }
         String language = detectLanguageFromText(text);
-        log.info("텍스트 처리 시작 - ID: {}, 길이: {}글자, 감지 언어: {}", id, text.length(), language);
+        log.info("텍스트 처리 시작 - ID: {}, sessionId: {}, 길이: {}글자, 감지 언어: {}", id, sessionId, text.length(), language);
+
+        // 사용자 메시지 저장
+        conversationService.saveMessage(sessionId, text, ConversationRole.USER);
 
         // ChatClient로 처리 (Tool Calling 포함)
         String aiResponse;
@@ -243,14 +261,18 @@ public class VoiceService {
             throw new VoiceProcessingException("텍스트 처리 중 오류가 발생했습니다.", e);
         }
 
+        // AI 응답 저장
+        conversationService.saveMessage(sessionId, aiResponse, ConversationRole.ASSISTANT);
+
         // AI 응답을 자동으로 음성으로 변환
         String response = convertToAudio(aiResponse);
 
-        log.info("텍스트 처리 완료 - ID: {}, 언어: {}", id, language);
+        log.info("텍스트 처리 완료 - ID: {}, 언어: {}, sessionId: {}", id, language, sessionId);
 
         String intent = extractIntent(text);
         return VoiceData.builder()
             .id(id)
+            .sessionId(sessionId)
             .transcript(text)
             .language(language)
             .intent(intent)
