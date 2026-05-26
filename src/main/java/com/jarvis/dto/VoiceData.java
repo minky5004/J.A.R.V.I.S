@@ -7,6 +7,7 @@ import lombok.Getter;
 @Builder
 public class VoiceData {
     private String id;              // 처리 ID (UUID)
+    private String sessionId;       // 세션 ID (요청/생성된 값)
     private String transcript;      // STT 변환 결과 텍스트
     private String language;        // 감지된 언어 코드 (ko, en, ja 등)
     private String intent;          // AI가 파악한 의도 (날씨조회, 일정확인 등)

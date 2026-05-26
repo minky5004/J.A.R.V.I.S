@@ -18,19 +18,30 @@ public class Conversation {
     private String message;
 
     @Column(nullable = false)
-    private String role;
+    @Enumerated(EnumType.STRING)
+    private ConversationRole role;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(nullable = false)
+    private Boolean isDeleted = false;
+
     public Conversation() {
     }
 
-    public Conversation(String sessionId, String message, String role) {
+    public Conversation(String sessionId, String message, ConversationRole role) {
         this.sessionId = sessionId;
         this.message = message;
         this.role = role;
         this.createdAt = LocalDateTime.now();
+    }
+
+    @PrePersist
+    protected void prePersist() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
     }
 
     public Long getId() {
@@ -57,11 +68,11 @@ public class Conversation {
         this.message = message;
     }
 
-    public String getRole() {
+    public ConversationRole getRole() {
         return role;
     }
 
-    public void setRole(String role) {
+    public void setRole(ConversationRole role) {
         this.role = role;
     }
 
@@ -73,13 +84,21 @@ public class Conversation {
         this.createdAt = createdAt;
     }
 
+    public Boolean getIsDeleted() {
+        return isDeleted;
+    }
+
+    public void setIsDeleted(Boolean isDeleted) {
+        this.isDeleted = isDeleted;
+    }
+
     @Override
     public String toString() {
         return "Conversation{" +
                 "id=" + id +
                 ", sessionId='" + sessionId + '\'' +
-                ", message='" + message + '\'' +
-                ", role='" + role + '\'' +
+                ", messageLength=" + (message != null ? message.length() : 0) +
+                ", role=" + role +
                 ", createdAt=" + createdAt +
                 '}';
     }

@@ -2,6 +2,7 @@ package com.jarvis.service;
 
 import com.jarvis.config.VoiceConfig;
 import com.jarvis.dto.VoiceData;
+import com.jarvis.entity.ConversationRole;
 import com.jarvis.exception.InvalidFileException;
 import com.jarvis.exception.VoiceProcessingException;
 import com.jarvis.tool.JarvisTools;
@@ -54,7 +55,7 @@ public class VoiceService {
         log.info("감지된 언어: {}", language);
 
         // 사용자 메시지 저장
-        conversationService.saveMessage(sessionId, transcript, "USER");
+        conversationService.saveMessage(sessionId, transcript, ConversationRole.USER);
 
         // 2. ChatClient로 처리 (Tool Calling 포함)
         String aiResponse;
@@ -71,7 +72,7 @@ public class VoiceService {
         }
 
         // AI 응답 저장
-        conversationService.saveMessage(sessionId, aiResponse, "AI");
+        conversationService.saveMessage(sessionId, aiResponse, ConversationRole.ASSISTANT);
 
         // 3. AI 응답을 자동으로 음성으로 변환
         String response = convertToAudio(aiResponse);
@@ -81,6 +82,7 @@ public class VoiceService {
         String intent = extractIntent(transcript);
         return VoiceData.builder()
             .id(id)
+            .sessionId(sessionId)
             .transcript(transcript)
             .language(language)
             .intent(intent)
@@ -243,7 +245,7 @@ public class VoiceService {
         log.info("텍스트 처리 시작 - ID: {}, sessionId: {}, 길이: {}글자, 감지 언어: {}", id, sessionId, text.length(), language);
 
         // 사용자 메시지 저장
-        conversationService.saveMessage(sessionId, text, "USER");
+        conversationService.saveMessage(sessionId, text, ConversationRole.USER);
 
         // ChatClient로 처리 (Tool Calling 포함)
         String aiResponse;
@@ -260,7 +262,7 @@ public class VoiceService {
         }
 
         // AI 응답 저장
-        conversationService.saveMessage(sessionId, aiResponse, "AI");
+        conversationService.saveMessage(sessionId, aiResponse, ConversationRole.ASSISTANT);
 
         // AI 응답을 자동으로 음성으로 변환
         String response = convertToAudio(aiResponse);
@@ -270,6 +272,7 @@ public class VoiceService {
         String intent = extractIntent(text);
         return VoiceData.builder()
             .id(id)
+            .sessionId(sessionId)
             .transcript(text)
             .language(language)
             .intent(intent)
