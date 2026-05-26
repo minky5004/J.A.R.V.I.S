@@ -24,40 +24,34 @@ public class VoiceController {
     private final VoiceService voiceService;
 
     @PostMapping("/process")
-    public ResponseEntity<VoiceProcessResponse> processVoice(
-        @RequestParam("file") MultipartFile file
+    public ResponseEntity<VoiceProcessResponse<VoiceData>> processVoice(
+        @RequestParam("file") MultipartFile file,
+        @RequestParam(value = "sessionId", required = false) String sessionId
     ) {
-        log.info("음성 처리 요청 - 크기: {}bytes", file.getSize());
+        log.info("음성 처리 요청 - 크기: {}bytes, sessionId: {}", file.getSize(), sessionId);
 
-        VoiceData voiceData = voiceService.processVoice(file);
+        VoiceData voiceData = voiceService.processVoice(file, sessionId);
 
-        VoiceProcessResponse response = VoiceProcessResponse.builder()
-            .success(true)
-            .message("음성 파일이 성공적으로 처리되었습니다.")
-            .data(voiceData)
-            .build();
-
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.status(HttpStatus.OK).body(
+            VoiceProcessResponse.success("음성 파일이 성공적으로 처리되었습니다.", voiceData)
+        );
     }
 
     @PostMapping("/test")
-    public ResponseEntity<VoiceProcessResponse> processTest(
+    public ResponseEntity<VoiceProcessResponse<VoiceData>> processTest(
         @RequestBody Map<String, String> request
     ) {
         if (request == null || request.get("text") == null) {
             throw new IllegalArgumentException("text 필드가 필요합니다.");
         }
         String text = request.get("text");
-        log.info("테스트 요청 - 텍스트 길이: {}글자", text.length());
+        String sessionId = request.get("sessionId");
+        log.info("테스트 요청 - 텍스트 길이: {}글자, sessionId: {}", text.length(), sessionId);
 
-        VoiceData voiceData = voiceService.processText(text);
+        VoiceData voiceData = voiceService.processText(text, sessionId);
 
-        VoiceProcessResponse response = VoiceProcessResponse.builder()
-            .success(true)
-            .message("테스트 요청이 성공적으로 처리되었습니다.")
-            .data(voiceData)
-            .build();
-
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+        return ResponseEntity.status(HttpStatus.OK).body(
+            VoiceProcessResponse.success("테스트 요청이 성공적으로 처리되었습니다.", voiceData)
+        );
     }
 }
