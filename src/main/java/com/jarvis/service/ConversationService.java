@@ -5,6 +5,9 @@ import com.jarvis.entity.ConversationRole;
 import com.jarvis.repository.ConversationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -23,6 +26,10 @@ public class ConversationService {
 
     private final ConversationRepository conversationRepository;
 
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "conversationHistory", key = "'sessionId:' + #sessionId"),
+        @CacheEvict(cacheNames = "conversationHistoryRecent", key = "'sessionId:' + #sessionId")
+    })
     public Conversation saveMessage(String sessionId, String message, ConversationRole role) {
         Conversation conversation = new Conversation(sessionId, message, role);
         Conversation saved = conversationRepository.save(conversation);
@@ -31,6 +38,7 @@ public class ConversationService {
         return saved;
     }
 
+    @Cacheable(cacheNames = "conversationHistory", key = "'sessionId:' + #sessionId")
     public List<Conversation> getConversationHistory(String sessionId) {
         List<Conversation> conversations = conversationRepository
             .findBySessionIdAndIsDeletedFalseOrderByCreatedAtDesc(sessionId);
@@ -50,6 +58,7 @@ public class ConversationService {
         return new PageImpl<>(pageContent, pageable, conversations.size());
     }
 
+    @Cacheable(cacheNames = "conversationHistoryRecent", key = "'sessionId:' + #sessionId")
     public List<Conversation> getRecentConversations(String sessionId) {
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
         List<Conversation> conversations = conversationRepository
@@ -60,6 +69,10 @@ public class ConversationService {
     }
 
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "conversationHistory", key = "'sessionId:' + #sessionId"),
+        @CacheEvict(cacheNames = "conversationHistoryRecent", key = "'sessionId:' + #sessionId")
+    })
     public void deleteSessionHistory(String sessionId) {
         long deletedCount = conversationRepository.softDeleteBySessionId(sessionId);
         if (deletedCount > 0) {
@@ -68,6 +81,10 @@ public class ConversationService {
     }
 
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "conversationHistory", key = "'sessionId:' + #sessionId"),
+        @CacheEvict(cacheNames = "conversationHistoryRecent", key = "'sessionId:' + #sessionId")
+    })
     public void hardDeleteSessionHistory(String sessionId) {
         long deletedCount = conversationRepository.deleteAllBySessionId(sessionId);
         if (deletedCount > 0) {
@@ -78,6 +95,7 @@ public class ConversationService {
 
     @Transactional
     @Scheduled(fixedRate = 86400000)
+    @CacheEvict(cacheNames = {"conversationHistory", "conversationHistoryRecent"}, allEntries = true)
     public void cleanupOldConversations() {
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
         long deletedCount = conversationRepository.deleteByCreatedAtBefore(thirtyDaysAgo);

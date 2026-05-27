@@ -22,6 +22,18 @@ spring:
     multipart:
       max-file-size: 25MB
       max-request-size: 30MB
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 2000ms
+    jedis:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+  cache:
+    type: redis
+    # TTL은 CacheConfig.java에서 캐시별로 설정됨
 
 api:
   timeout:
