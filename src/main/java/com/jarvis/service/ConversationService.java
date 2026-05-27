@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -25,7 +26,10 @@ public class ConversationService {
 
     private final ConversationRepository conversationRepository;
 
-    @CacheEvict(cacheNames = {"conversationHistory", "conversationHistoryRecent"}, allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "conversationHistory", key = "'sessionId:' + #sessionId"),
+        @CacheEvict(cacheNames = "conversationHistoryRecent", key = "'sessionId:' + #sessionId")
+    })
     public Conversation saveMessage(String sessionId, String message, ConversationRole role) {
         Conversation conversation = new Conversation(sessionId, message, role);
         Conversation saved = conversationRepository.save(conversation);
@@ -65,7 +69,10 @@ public class ConversationService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = {"conversationHistory", "conversationHistoryRecent"}, allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "conversationHistory", key = "'sessionId:' + #sessionId"),
+        @CacheEvict(cacheNames = "conversationHistoryRecent", key = "'sessionId:' + #sessionId")
+    })
     public void deleteSessionHistory(String sessionId) {
         long deletedCount = conversationRepository.softDeleteBySessionId(sessionId);
         if (deletedCount > 0) {
@@ -74,7 +81,10 @@ public class ConversationService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = {"conversationHistory", "conversationHistoryRecent"}, allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "conversationHistory", key = "'sessionId:' + #sessionId"),
+        @CacheEvict(cacheNames = "conversationHistoryRecent", key = "'sessionId:' + #sessionId")
+    })
     public void hardDeleteSessionHistory(String sessionId) {
         long deletedCount = conversationRepository.deleteAllBySessionId(sessionId);
         if (deletedCount > 0) {

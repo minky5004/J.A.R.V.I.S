@@ -72,7 +72,7 @@ public class VoiceService {
             log.info("캐시에서 음성 응답 반환 - ID: {}, sessionId: {}", id, sessionId);
             conversationService.saveMessage(sessionId, cachedData.getTranscript(), ConversationRole.USER);
             conversationService.saveMessage(sessionId, cachedData.getResultText(), ConversationRole.ASSISTANT);
-            return cachedData;
+            return cachedData.toBuilder().id(id).build();
         }
 
         // 3. STT 변환 + 언어 자동 감지 (저장된 파일 바이트 사용)
@@ -287,7 +287,7 @@ public class VoiceService {
             log.info("캐시에서 텍스트 응답 반환 - ID: {}, sessionId: {}", id, sessionId);
             conversationService.saveMessage(sessionId, cachedData.getTranscript(), ConversationRole.USER);
             conversationService.saveMessage(sessionId, cachedData.getResultText(), ConversationRole.ASSISTANT);
-            return cachedData;
+            return cachedData.toBuilder().id(id).build();
         }
 
         // 3. 사용자 메시지 저장

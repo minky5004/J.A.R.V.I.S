@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public class VoiceData {
     private String id;              // 처리 ID (UUID)
     private String sessionId;       // 세션 ID (요청/생성된 값)

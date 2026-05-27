@@ -9,6 +9,10 @@ public class CacheKeyUtil {
 
     private static final String HASH_ALGORITHM = "SHA-256";
 
+    private CacheKeyUtil() {
+        throw new UnsupportedOperationException("유틸리티 클래스는 인스턴스화될 수 없습니다");
+    }
+
     public static String generateVoiceResponseKey(String sessionId, String textOrFileHash) {
         Objects.requireNonNull(sessionId, "sessionId는 null일 수 없습니다");
         Objects.requireNonNull(textOrFileHash, "textOrFileHash는 null일 수 없습니다");
