@@ -85,6 +85,7 @@ public class ConversationService {
 
     @Transactional
     @Scheduled(fixedRate = 86400000)
+    @CacheEvict(cacheNames = {"conversationHistory", "conversationHistoryRecent"}, allEntries = true)
     public void cleanupOldConversations() {
         LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
         long deletedCount = conversationRepository.deleteByCreatedAtBefore(thirtyDaysAgo);

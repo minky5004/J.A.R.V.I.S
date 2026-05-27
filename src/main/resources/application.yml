@@ -33,8 +33,7 @@ spring:
         min-idle: 0
   cache:
     type: redis
-    redis:
-      time-to-live: 3600000
+    # TTL은 CacheConfig.java에서 캐시별로 설정됨
 
 api:
   timeout:

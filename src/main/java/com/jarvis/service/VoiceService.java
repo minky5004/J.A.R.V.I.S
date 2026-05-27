@@ -55,24 +55,28 @@ public class VoiceService {
         long fileSize = file.getSize();
         log.info("음성 처리 시작 - ID: {}, sessionId: {}, 크기: {}bytes", id, sessionId, fileSize);
 
-        // 1. 파일 해시로 캐시 키 생성
-        String fileHash;
+        // 1. 파일 바이트 읽기 (한 번만)
+        byte[] fileBytes;
         try {
-            fileHash = CacheKeyUtil.hashBytes(file.getBytes());
+            fileBytes = file.getBytes();
         } catch (IOException e) {
             throw new VoiceProcessingException("파일 읽기 실패", e);
         }
+
+        String fileHash = CacheKeyUtil.hashBytes(fileBytes);
         String cacheKey = CacheKeyUtil.generateVoiceResponseKey(sessionId, fileHash);
 
         // 2. 캐시 확인
         VoiceData cachedData = redisTemplate.opsForValue().get(cacheKey);
         if (cachedData != null) {
             log.info("캐시에서 음성 응답 반환 - ID: {}, sessionId: {}", id, sessionId);
+            conversationService.saveMessage(sessionId, cachedData.getTranscript(), ConversationRole.USER);
+            conversationService.saveMessage(sessionId, cachedData.getResultText(), ConversationRole.ASSISTANT);
             return cachedData;
         }
 
-        // 3. STT 변환 + 언어 자동 감지
-        TranscriptionResult transcription = extractTranscriptFromFile(file);
+        // 3. STT 변환 + 언어 자동 감지 (저장된 파일 바이트 사용)
+        TranscriptionResult transcription = callWhisperAPI(fileBytes, file.getOriginalFilename());
         String transcript = transcription.text();
         String language = transcription.language();
         log.info("감지된 언어: {}", language);
@@ -281,6 +285,8 @@ public class VoiceService {
         VoiceData cachedData = redisTemplate.opsForValue().get(cacheKey);
         if (cachedData != null) {
             log.info("캐시에서 텍스트 응답 반환 - ID: {}, sessionId: {}", id, sessionId);
+            conversationService.saveMessage(sessionId, cachedData.getTranscript(), ConversationRole.USER);
+            conversationService.saveMessage(sessionId, cachedData.getResultText(), ConversationRole.ASSISTANT);
             return cachedData;
         }
 
@@ -437,6 +443,16 @@ public class VoiceService {
 
                     String cacheKey = CacheKeyUtil.generateVoiceResponseStreamKey(finalSessionId, fileHash);
 
+                    // 캐시 확인
+                    VoiceData cachedData = redisTemplate.opsForValue().get(cacheKey);
+                    if (cachedData != null) {
+                        log.info("캐시에서 음성 스트리밍 응답 반환 - ID: {}, sessionId: {}", id, finalSessionId);
+                        conversationService.saveMessage(finalSessionId, cachedData.getTranscript(), ConversationRole.USER);
+                        conversationService.saveMessage(finalSessionId, cachedData.getResultText(), ConversationRole.ASSISTANT);
+                        streamCachedResponse(cachedData.getResultText(), emitter, id);
+                        return;
+                    }
+
                     TranscriptionResult transcription = callWhisperAPI(fileBytes, filename);
                     final String transcript = transcription.text();
                     final String language = transcription.language();
@@ -539,6 +555,16 @@ public class VoiceService {
 
                     String cacheKey = CacheKeyUtil.generateVoiceResponseStreamKey(finalSessionId, textHash);
 
+                    // 캐시 확인
+                    VoiceData cachedData = redisTemplate.opsForValue().get(cacheKey);
+                    if (cachedData != null) {
+                        log.info("캐시에서 텍스트 스트리밍 응답 반환 - ID: {}, sessionId: {}", id, finalSessionId);
+                        conversationService.saveMessage(finalSessionId, cachedData.getTranscript(), ConversationRole.USER);
+                        conversationService.saveMessage(finalSessionId, cachedData.getResultText(), ConversationRole.ASSISTANT);
+                        streamCachedResponse(cachedData.getResultText(), emitter, id);
+                        return;
+                    }
+
                     conversationService.saveMessage(finalSessionId, text, ConversationRole.USER);
 
                     final String systemPrompt = buildSystemPrompt(language);
@@ -609,6 +635,30 @@ public class VoiceService {
             });
         } catch (Exception e) {
             log.error("텍스트 검증 실패", e);
+            emitter.completeWithError(e);
+        }
+    }
+
+    private void streamCachedResponse(String aiResponse, SseEmitter emitter, String id) {
+        try {
+            String[] tokens = aiResponse.split("(?<=\\s)|(?=\\s)");
+            for (String token : tokens) {
+                if (!token.isEmpty()) {
+                    emitter.send(SseEmitter.event()
+                        .id(id)
+                        .name("token")
+                        .data(token)
+                        .reconnectTime(1000));
+                }
+            }
+            emitter.send(SseEmitter.event()
+                .id(id)
+                .name("complete")
+                .data("스트리밍 완료"));
+            emitter.complete();
+            log.debug("캐시된 응답 스트리밍 완료 - ID: {}, 응답 길이: {}글자", id, aiResponse.length());
+        } catch (IOException e) {
+            log.error("캐시된 응답 스트리밍 중 오류", e);
             emitter.completeWithError(e);
         }
     }
