@@ -6,6 +6,7 @@ import com.jarvis.entity.ConversationRole;
 import com.jarvis.exception.InvalidFileException;
 import com.jarvis.exception.VoiceProcessingException;
 import com.jarvis.tool.JarvisTools;
+import com.jarvis.util.CacheKeyUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -27,6 +29,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -37,6 +40,7 @@ public class VoiceService {
     private final JarvisTools jarvisTools;
     private final RestTemplate restTemplate;
     private final ConversationService conversationService;
+    private final RedisTemplate<String, VoiceData> redisTemplate;
 
     @Value("${spring.ai.openai.api-key}")
     private String openAiApiKey;
@@ -51,7 +55,23 @@ public class VoiceService {
         long fileSize = file.getSize();
         log.info("음성 처리 시작 - ID: {}, sessionId: {}, 크기: {}bytes", id, sessionId, fileSize);
 
-        // 1. STT 변환 + 언어 자동 감지
+        // 1. 파일 해시로 캐시 키 생성
+        String fileHash;
+        try {
+            fileHash = CacheKeyUtil.hashBytes(file.getBytes());
+        } catch (IOException e) {
+            throw new VoiceProcessingException("파일 읽기 실패", e);
+        }
+        String cacheKey = CacheKeyUtil.generateVoiceResponseKey(sessionId, fileHash);
+
+        // 2. 캐시 확인
+        VoiceData cachedData = redisTemplate.opsForValue().get(cacheKey);
+        if (cachedData != null) {
+            log.info("캐시에서 음성 응답 반환 - ID: {}, sessionId: {}", id, sessionId);
+            return cachedData;
+        }
+
+        // 3. STT 변환 + 언어 자동 감지
         TranscriptionResult transcription = extractTranscriptFromFile(file);
         String transcript = transcription.text();
         String language = transcription.language();
@@ -60,7 +80,7 @@ public class VoiceService {
         // 사용자 메시지 저장
         conversationService.saveMessage(sessionId, transcript, ConversationRole.USER);
 
-        // 2. ChatClient로 처리 (Tool Calling 포함)
+        // 4. ChatClient로 처리 (Tool Calling 포함)
         String aiResponse;
         try {
             aiResponse = chatClient.prompt()
@@ -77,13 +97,13 @@ public class VoiceService {
         // AI 응답 저장
         conversationService.saveMessage(sessionId, aiResponse, ConversationRole.ASSISTANT);
 
-        // 3. AI 응답을 자동으로 음성으로 변환
+        // 5. AI 응답을 자동으로 음성으로 변환
         String response = convertToAudio(aiResponse);
 
         log.info("음성 처리 완료 - ID: {}, 언어: {}, sessionId: {}", id, language, sessionId);
 
         String intent = extractIntent(transcript);
-        return VoiceData.builder()
+        VoiceData voiceData = VoiceData.builder()
             .id(id)
             .sessionId(sessionId)
             .transcript(transcript)
@@ -92,6 +112,12 @@ public class VoiceService {
             .resultText(aiResponse)
             .result(response)
             .build();
+
+        // 6. 캐시 저장 (1시간)
+        redisTemplate.opsForValue().set(cacheKey, voiceData, 1, TimeUnit.HOURS);
+        log.debug("음성 응답 캐시 저장 - cacheKey: {}", cacheKey);
+
+        return voiceData;
     }
 
     private String extractIntent(String transcript) {
@@ -247,10 +273,21 @@ public class VoiceService {
         String language = detectLanguageFromText(text);
         log.info("텍스트 처리 시작 - ID: {}, sessionId: {}, 길이: {}글자, 감지 언어: {}", id, sessionId, text.length(), language);
 
-        // 사용자 메시지 저장
+        // 1. 텍스트 해시로 캐시 키 생성
+        String textHash = CacheKeyUtil.hashText(text);
+        String cacheKey = CacheKeyUtil.generateVoiceResponseKey(sessionId, textHash);
+
+        // 2. 캐시 확인
+        VoiceData cachedData = redisTemplate.opsForValue().get(cacheKey);
+        if (cachedData != null) {
+            log.info("캐시에서 텍스트 응답 반환 - ID: {}, sessionId: {}", id, sessionId);
+            return cachedData;
+        }
+
+        // 3. 사용자 메시지 저장
         conversationService.saveMessage(sessionId, text, ConversationRole.USER);
 
-        // ChatClient로 처리 (Tool Calling 포함)
+        // 4. ChatClient로 처리 (Tool Calling 포함)
         String aiResponse;
         try {
             aiResponse = chatClient.prompt()
@@ -267,13 +304,13 @@ public class VoiceService {
         // AI 응답 저장
         conversationService.saveMessage(sessionId, aiResponse, ConversationRole.ASSISTANT);
 
-        // AI 응답을 자동으로 음성으로 변환
+        // 5. AI 응답을 자동으로 음성으로 변환
         String response = convertToAudio(aiResponse);
 
         log.info("텍스트 처리 완료 - ID: {}, 언어: {}, sessionId: {}", id, language, sessionId);
 
         String intent = extractIntent(text);
-        return VoiceData.builder()
+        VoiceData voiceData = VoiceData.builder()
             .id(id)
             .sessionId(sessionId)
             .transcript(text)
@@ -282,6 +319,12 @@ public class VoiceService {
             .resultText(aiResponse)
             .result(response)
             .build();
+
+        // 6. 캐시 저장 (1시간)
+        redisTemplate.opsForValue().set(cacheKey, voiceData, 1, TimeUnit.HOURS);
+        log.debug("텍스트 응답 캐시 저장 - cacheKey: {}", cacheKey);
+
+        return voiceData;
     }
 
     /**
@@ -381,6 +424,7 @@ public class VoiceService {
             // async 블록 전에 MultipartFile 데이터 미리 읽기
             final byte[] fileBytes = file.getBytes();
             final String filename = file.getOriginalFilename();
+            final String fileHash = CacheKeyUtil.hashBytes(fileBytes);
 
             CompletableFuture.runAsync(() -> {
                 try {
@@ -390,6 +434,8 @@ public class VoiceService {
                         : UUID.randomUUID().toString();
                     final long fileSize = fileBytes.length;
                     log.info("음성 스트리밍 처리 시작 - ID: {}, sessionId: {}, 크기: {}bytes", id, finalSessionId, fileSize);
+
+                    String cacheKey = CacheKeyUtil.generateVoiceResponseStreamKey(finalSessionId, fileHash);
 
                     TranscriptionResult transcription = callWhisperAPI(fileBytes, filename);
                     final String transcript = transcription.text();
@@ -428,13 +474,30 @@ public class VoiceService {
                             },
                             () -> {
                                 try {
-                                    conversationService.saveMessage(finalSessionId, fullResponse.toString(), ConversationRole.ASSISTANT);
+                                    String aiResponse = fullResponse.toString();
+                                    conversationService.saveMessage(finalSessionId, aiResponse, ConversationRole.ASSISTANT);
+
+                                    // 스트리밍 완료 후 캐시 저장 (30분)
+                                    String audioBase64 = jarvisTools.speakText(aiResponse);
+                                    String intent = extractIntent(transcript);
+                                    VoiceData voiceData = VoiceData.builder()
+                                        .id(id)
+                                        .sessionId(finalSessionId)
+                                        .transcript(transcript)
+                                        .language(language)
+                                        .intent(intent)
+                                        .resultText(aiResponse)
+                                        .result(audioBase64)
+                                        .build();
+                                    redisTemplate.opsForValue().set(cacheKey, voiceData, 30, TimeUnit.MINUTES);
+                                    log.debug("음성 스트리밍 응답 캐시 저장 - cacheKey: {}", cacheKey);
+
                                     emitter.send(SseEmitter.event()
                                         .id(id)
                                         .name("complete")
                                         .data("스트리밍 완료"));
                                     emitter.complete();
-                                    log.info("음성 스트리밍 처리 완료 - ID: {}, 응답 길이: {}글자", id, fullResponse.length());
+                                    log.info("음성 스트리밍 처리 완료 - ID: {}, 응답 길이: {}글자", id, aiResponse.length());
                                 } catch (IOException e) {
                                     log.error("스트리밍 완료 처리 중 오류", e);
                                     emitter.completeWithError(e);
@@ -463,6 +526,8 @@ public class VoiceService {
                 throw new VoiceProcessingException("텍스트를 입력해주세요.");
             }
 
+            final String textHash = CacheKeyUtil.hashText(text);
+
             CompletableFuture.runAsync(() -> {
                 try {
                     final String id = UUID.randomUUID().toString();
@@ -471,6 +536,8 @@ public class VoiceService {
                         : UUID.randomUUID().toString();
                     final String language = detectLanguageFromText(text);
                     log.info("텍스트 스트리밍 처리 시작 - ID: {}, sessionId: {}, 길이: {}글자, 감지 언어: {}", id, finalSessionId, text.length(), language);
+
+                    String cacheKey = CacheKeyUtil.generateVoiceResponseStreamKey(finalSessionId, textHash);
 
                     conversationService.saveMessage(finalSessionId, text, ConversationRole.USER);
 
@@ -504,13 +571,30 @@ public class VoiceService {
                             },
                             () -> {
                                 try {
-                                    conversationService.saveMessage(finalSessionId, fullResponse.toString(), ConversationRole.ASSISTANT);
+                                    String aiResponse = fullResponse.toString();
+                                    conversationService.saveMessage(finalSessionId, aiResponse, ConversationRole.ASSISTANT);
+
+                                    // 스트리밍 완료 후 캐시 저장 (30분)
+                                    String audioBase64 = jarvisTools.speakText(aiResponse);
+                                    String intent = extractIntent(text);
+                                    VoiceData voiceData = VoiceData.builder()
+                                        .id(id)
+                                        .sessionId(finalSessionId)
+                                        .transcript(text)
+                                        .language(language)
+                                        .intent(intent)
+                                        .resultText(aiResponse)
+                                        .result(audioBase64)
+                                        .build();
+                                    redisTemplate.opsForValue().set(cacheKey, voiceData, 30, TimeUnit.MINUTES);
+                                    log.debug("텍스트 스트리밍 응답 캐시 저장 - cacheKey: {}", cacheKey);
+
                                     emitter.send(SseEmitter.event()
                                         .id(id)
                                         .name("complete")
                                         .data("스트리밍 완료"));
                                     emitter.complete();
-                                    log.info("텍스트 스트리밍 처리 완료 - ID: {}, 응답 길이: {}글자", id, fullResponse.length());
+                                    log.info("텍스트 스트리밍 처리 완료 - ID: {}, 응답 길이: {}글자", id, aiResponse.length());
                                 } catch (IOException e) {
                                     log.error("스트리밍 완료 처리 중 오류", e);
                                     emitter.completeWithError(e);
