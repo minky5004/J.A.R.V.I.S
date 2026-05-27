@@ -22,8 +22,11 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -364,6 +367,165 @@ public class VoiceService {
             int responseLength = (aiResponse != null) ? aiResponse.length() : 0;
             log.error("음성 변환 중 오류 발생 - 응답 길이: {}글자", responseLength, e);
             return aiResponse;
+        }
+    }
+
+    /**
+     * 음성 파일을 비동기로 처리하여 스트리밍 응답을 전송합니다.
+     * STT 변환 후 ChatClient의 스트리밍 API로 토큰 단위로 응답합니다.
+     */
+    public void processVoiceStreamAsync(MultipartFile file, String sessionId, SseEmitter emitter) {
+        try {
+            validateFile(file);
+
+            // async 블록 전에 MultipartFile 데이터 미리 읽기
+            final byte[] fileBytes = file.getBytes();
+            final String filename = file.getOriginalFilename();
+
+            CompletableFuture.runAsync(() -> {
+                try {
+                    final String id = UUID.randomUUID().toString();
+                    final String finalSessionId = (sessionId != null && !sessionId.isBlank())
+                        ? sessionId
+                        : UUID.randomUUID().toString();
+                    final long fileSize = fileBytes.length;
+                    log.info("음성 스트리밍 처리 시작 - ID: {}, sessionId: {}, 크기: {}bytes", id, finalSessionId, fileSize);
+
+                    TranscriptionResult transcription = callWhisperAPI(fileBytes, filename);
+                    final String transcript = transcription.text();
+                    final String language = transcription.language();
+                    log.info("감지된 언어: {}", language);
+
+                    conversationService.saveMessage(finalSessionId, transcript, ConversationRole.USER);
+
+                    final String systemPrompt = buildSystemPrompt(language);
+                    final StringBuilder fullResponse = new StringBuilder();
+
+                    chatClient.prompt()
+                        .system(systemPrompt)
+                        .user(transcript)
+                        .tools(jarvisTools)
+                        .stream()
+                        .content()
+                        .doOnNext(token -> {
+                            try {
+                                fullResponse.append(token);
+                                emitter.send(SseEmitter.event()
+                                    .id(id)
+                                    .name("token")
+                                    .data(token)
+                                    .reconnectTime(1000));
+                            } catch (IOException e) {
+                                log.error("SSE 전송 중 오류 - ID: {}", id, e);
+                                emitter.completeWithError(e);
+                            }
+                        })
+                        .subscribe(
+                            token -> {},
+                            e -> {
+                                log.error("음성 스트리밍 에러 - ID: {}", id, e);
+                                emitter.completeWithError(e);
+                            },
+                            () -> {
+                                try {
+                                    conversationService.saveMessage(finalSessionId, fullResponse.toString(), ConversationRole.ASSISTANT);
+                                    emitter.send(SseEmitter.event()
+                                        .id(id)
+                                        .name("complete")
+                                        .data("스트리밍 완료"));
+                                    emitter.complete();
+                                    log.info("음성 스트리밍 처리 완료 - ID: {}, 응답 길이: {}글자", id, fullResponse.length());
+                                } catch (IOException e) {
+                                    log.error("스트리밍 완료 처리 중 오류", e);
+                                    emitter.completeWithError(e);
+                                }
+                            }
+                        );
+
+                } catch (Exception e) {
+                    log.error("음성 스트리밍 처리 중 오류", e);
+                    emitter.completeWithError(e);
+                }
+            });
+        } catch (Exception e) {
+            log.error("음성 파일 읽기 실패", e);
+            emitter.completeWithError(e);
+        }
+    }
+
+    /**
+     * 텍스트를 비동기로 처리하여 스트리밍 응답을 전송합니다.
+     * 언어 감지 후 ChatClient의 스트리밍 API로 토큰 단위로 응답합니다.
+     */
+    public void processTextStreamAsync(String text, String sessionId, SseEmitter emitter) {
+        try {
+            if (text == null || text.isBlank()) {
+                throw new VoiceProcessingException("텍스트를 입력해주세요.");
+            }
+
+            CompletableFuture.runAsync(() -> {
+                try {
+                    final String id = UUID.randomUUID().toString();
+                    final String finalSessionId = (sessionId != null && !sessionId.isBlank())
+                        ? sessionId
+                        : UUID.randomUUID().toString();
+                    final String language = detectLanguageFromText(text);
+                    log.info("텍스트 스트리밍 처리 시작 - ID: {}, sessionId: {}, 길이: {}글자, 감지 언어: {}", id, finalSessionId, text.length(), language);
+
+                    conversationService.saveMessage(finalSessionId, text, ConversationRole.USER);
+
+                    final String systemPrompt = buildSystemPrompt(language);
+                    final StringBuilder fullResponse = new StringBuilder();
+
+                    chatClient.prompt()
+                        .system(systemPrompt)
+                        .user(text)
+                        .tools(jarvisTools)
+                        .stream()
+                        .content()
+                        .doOnNext(token -> {
+                            try {
+                                fullResponse.append(token);
+                                emitter.send(SseEmitter.event()
+                                    .id(id)
+                                    .name("token")
+                                    .data(token)
+                                    .reconnectTime(1000));
+                            } catch (IOException e) {
+                                log.error("SSE 전송 중 오류 - ID: {}", id, e);
+                                emitter.completeWithError(e);
+                            }
+                        })
+                        .subscribe(
+                            token -> {},
+                            e -> {
+                                log.error("텍스트 스트리밍 에러 - ID: {}", id, e);
+                                emitter.completeWithError(e);
+                            },
+                            () -> {
+                                try {
+                                    conversationService.saveMessage(finalSessionId, fullResponse.toString(), ConversationRole.ASSISTANT);
+                                    emitter.send(SseEmitter.event()
+                                        .id(id)
+                                        .name("complete")
+                                        .data("스트리밍 완료"));
+                                    emitter.complete();
+                                    log.info("텍스트 스트리밍 처리 완료 - ID: {}, 응답 길이: {}글자", id, fullResponse.length());
+                                } catch (IOException e) {
+                                    log.error("스트리밍 완료 처리 중 오류", e);
+                                    emitter.completeWithError(e);
+                                }
+                            }
+                        );
+
+                } catch (Exception e) {
+                    log.error("텍스트 스트리밍 처리 중 오류", e);
+                    emitter.completeWithError(e);
+                }
+            });
+        } catch (Exception e) {
+            log.error("텍스트 검증 실패", e);
+            emitter.completeWithError(e);
         }
     }
 }
