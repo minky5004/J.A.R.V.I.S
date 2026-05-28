@@ -3,6 +3,7 @@ package com.jarvis.controller;
 import com.jarvis.dto.VoiceProcessResponse;
 import com.jarvis.entity.Conversation;
 import com.jarvis.service.ConversationService;
+import com.jarvis.util.RateLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -20,6 +21,7 @@ import java.util.List;
 public class ConversationController {
 
     private final ConversationService conversationService;
+    private final RateLimiter rateLimiter;
 
     @GetMapping("/{sessionId}")
     public ResponseEntity<VoiceProcessResponse<Page<Conversation>>> getHistory(
@@ -63,6 +65,14 @@ public class ConversationController {
             return ResponseEntity.badRequest()
                 .body(VoiceProcessResponse.failure("유효한 sessionId가 필요합니다."));
         }
+
+        if (!rateLimiter.allowRequest(sessionId)) {
+            log.warn("레이트 리미팅 초과 - DELETE 요청, sessionId: {}", sessionId);
+            return ResponseEntity.status(429).body(
+                VoiceProcessResponse.failure("요청 횟수가 초과되었습니다. 분당 10회만 가능합니다.")
+            );
+        }
+
         log.info("세션 대화 삭제 요청 - sessionId: {}", sessionId);
         conversationService.deleteSessionHistory(sessionId);
         return ResponseEntity.ok(VoiceProcessResponse.success(
@@ -73,6 +83,15 @@ public class ConversationController {
 
     @PostMapping("/cleanup")
     public ResponseEntity<VoiceProcessResponse<String>> cleanup() {
+        String identifier = "admin-cleanup";
+
+        if (!rateLimiter.allowRequest(identifier)) {
+            log.warn("레이트 리미팅 초과 - 자동 정리 요청");
+            return ResponseEntity.status(429).body(
+                VoiceProcessResponse.failure("요청 횟수가 초과되었습니다. 분당 10회만 가능합니다.")
+            );
+        }
+
         log.warn("자동 정리 요청 - 관리자 권한 확인 필요 (Phase 8-4에서 @PreAuthorize 추가)");
         conversationService.cleanupOldConversations();
         return ResponseEntity.ok(VoiceProcessResponse.success(
