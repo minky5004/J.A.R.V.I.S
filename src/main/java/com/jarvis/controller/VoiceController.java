@@ -32,7 +32,7 @@ public class VoiceController {
         @RequestParam("file") MultipartFile file,
         @RequestParam(value = "sessionId", required = false) String sessionId
     ) {
-        String identifier = sessionId != null ? sessionId : "anonymous";
+        String identifier = sessionId == null || sessionId.isBlank() ? "anonymous" : sessionId;
 
         if (!rateLimiter.allowRequest(identifier)) {
             log.warn("레이트 리미팅 초과 - identifier: {}", identifier);
@@ -59,7 +59,7 @@ public class VoiceController {
         }
         String text = request.get("text");
         String sessionId = request.get("sessionId");
-        String identifier = sessionId != null ? sessionId : "anonymous";
+        String identifier = sessionId == null || sessionId.isBlank() ? "anonymous" : sessionId;
 
         if (!rateLimiter.allowRequest(identifier)) {
             log.warn("레이트 리미팅 초과 - identifier: {}", identifier);
@@ -82,7 +82,7 @@ public class VoiceController {
         @RequestParam("file") MultipartFile file,
         @RequestParam(value = "sessionId", required = false) String sessionId
     ) {
-        String identifier = sessionId != null ? sessionId : "anonymous";
+        String identifier = sessionId == null || sessionId.isBlank() ? "anonymous" : sessionId;
 
         if (!rateLimiter.allowRequest(identifier)) {
             log.warn("레이트 리미팅 초과 - identifier: {}", identifier);
@@ -118,7 +118,7 @@ public class VoiceController {
         }
         String text = request.get("text");
         String sessionId = request.get("sessionId");
-        String identifier = sessionId != null ? sessionId : "anonymous";
+        String identifier = sessionId == null || sessionId.isBlank() ? "anonymous" : sessionId;
 
         if (!rateLimiter.allowRequest(identifier)) {
             log.warn("레이트 리미팅 초과 - identifier: {}", identifier);
