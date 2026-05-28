@@ -3,6 +3,7 @@ package com.jarvis.controller;
 import com.jarvis.dto.VoiceData;
 import com.jarvis.dto.VoiceProcessResponse;
 import com.jarvis.service.VoiceService;
+import com.jarvis.util.RateLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -24,12 +25,22 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class VoiceController {
     private final VoiceService voiceService;
+    private final RateLimiter rateLimiter;
 
     @PostMapping("/process")
     public ResponseEntity<VoiceProcessResponse<VoiceData>> processVoice(
         @RequestParam("file") MultipartFile file,
         @RequestParam(value = "sessionId", required = false) String sessionId
     ) {
+        String identifier = sessionId == null || sessionId.isBlank() ? "anonymous" : sessionId;
+
+        if (!rateLimiter.allowRequest(identifier)) {
+            log.warn("레이트 리미팅 초과 - identifier: {}", identifier);
+            return ResponseEntity.status(429).body(
+                VoiceProcessResponse.failure("요청 횟수가 초과되었습니다. 분당 10회만 가능합니다.")
+            );
+        }
+
         log.info("음성 처리 요청 - 크기: {}bytes, sessionId: {}", file.getSize(), sessionId);
 
         VoiceData voiceData = voiceService.processVoice(file, sessionId);
@@ -48,6 +59,15 @@ public class VoiceController {
         }
         String text = request.get("text");
         String sessionId = request.get("sessionId");
+        String identifier = sessionId == null || sessionId.isBlank() ? "anonymous" : sessionId;
+
+        if (!rateLimiter.allowRequest(identifier)) {
+            log.warn("레이트 리미팅 초과 - identifier: {}", identifier);
+            return ResponseEntity.status(429).body(
+                VoiceProcessResponse.failure("요청 횟수가 초과되었습니다. 분당 10회만 가능합니다.")
+            );
+        }
+
         log.info("테스트 요청 - 텍스트 길이: {}글자, sessionId: {}", text.length(), sessionId);
 
         VoiceData voiceData = voiceService.processText(text, sessionId);
@@ -58,10 +78,19 @@ public class VoiceController {
     }
 
     @PostMapping(value = "/process-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter processVoiceStream(
+    public ResponseEntity<?> processVoiceStream(
         @RequestParam("file") MultipartFile file,
         @RequestParam(value = "sessionId", required = false) String sessionId
     ) {
+        String identifier = sessionId == null || sessionId.isBlank() ? "anonymous" : sessionId;
+
+        if (!rateLimiter.allowRequest(identifier)) {
+            log.warn("레이트 리미팅 초과 - identifier: {}", identifier);
+            return ResponseEntity.status(429).body(
+                VoiceProcessResponse.failure("요청 횟수가 초과되었습니다. 분당 10회만 가능합니다.")
+            );
+        }
+
         log.info("음성 스트리밍 처리 요청 - 크기: {}bytes, sessionId: {}", file.getSize(), sessionId);
         SseEmitter emitter = new SseEmitter(300000L);
 
@@ -77,11 +106,11 @@ public class VoiceController {
         emitter.onCompletion(() -> log.info("음성 스트리밍 완료"));
 
         voiceService.processVoiceStreamAsync(file, sessionId, emitter);
-        return emitter;
+        return ResponseEntity.ok(emitter);
     }
 
     @PostMapping(value = "/test-stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter processTestStream(
+    public ResponseEntity<?> processTestStream(
         @RequestBody Map<String, String> request
     ) {
         if (request == null || request.get("text") == null) {
@@ -89,6 +118,15 @@ public class VoiceController {
         }
         String text = request.get("text");
         String sessionId = request.get("sessionId");
+        String identifier = sessionId == null || sessionId.isBlank() ? "anonymous" : sessionId;
+
+        if (!rateLimiter.allowRequest(identifier)) {
+            log.warn("레이트 리미팅 초과 - identifier: {}", identifier);
+            return ResponseEntity.status(429).body(
+                VoiceProcessResponse.failure("요청 횟수가 초과되었습니다. 분당 10회만 가능합니다.")
+            );
+        }
+
         log.info("테스트 스트리밍 요청 - 텍스트 길이: {}글자, sessionId: {}", text.length(), sessionId);
 
         SseEmitter emitter = new SseEmitter(300000L);
@@ -105,6 +143,6 @@ public class VoiceController {
         emitter.onCompletion(() -> log.info("텍스트 스트리밍 완료"));
 
         voiceService.processTextStreamAsync(text, sessionId, emitter);
-        return emitter;
+        return ResponseEntity.ok(emitter);
     }
 }
