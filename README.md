@@ -57,10 +57,11 @@ cd J.A.R.V.I.S
 # OpenAI API
 OPENAI_API_KEY=your-openai-api-key
 
-# Database
-SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/jarvis
-SPRING_DATASOURCE_USERNAME=postgres
-SPRING_DATASOURCE_PASSWORD=your-db-password
+# Database (PostgreSQL)
+# 주의: URL과 USERNAME은 application.yml에 하드코딩됨
+# jdbc:postgresql://localhost:5432/jarvis
+# username: jarvis
+DB_PASSWORD=your-db-password
 
 # Redis
 SPRING_REDIS_HOST=localhost
@@ -114,10 +115,17 @@ curl -X POST http://localhost:8080/api/voice/process \
 응답:
 ```json
 {
-  "id": "response-uuid",
-  "response": "서울의 현재 날씨는 맑고 기온은 25도입니다.",
-  "sessionId": "user-123",
-  "timestamp": "2026-05-29T10:30:00Z"
+  "success": true,
+  "message": "음성 처리 완료",
+  "data": {
+    "id": "response-uuid",
+    "sessionId": "user-123",
+    "transcript": "서울 날씨 알려줘",
+    "language": "ko",
+    "intent": "weather_info",
+    "resultText": "서울의 현재 날씨는 맑고 기온은 25도입니다.",
+    "result": {}
+  }
 }
 ```
 
@@ -146,7 +154,7 @@ curl -X POST http://localhost:8080/api/voice/process-stream \
 ```
 
 응답 (Server-Sent Events):
-```
+```json
 data: {"chunk":"서울의"}
 data: {"chunk":"현재"}
 data: {"chunk":"날씨는"}
@@ -195,13 +203,11 @@ spring:
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
-      chat:
-        options:
-          model: gpt-4o-mini
+      model: gpt-4o-mini
   datasource:
     url: jdbc:postgresql://localhost:5432/jarvis
-    username: postgres
-    password: password
+    username: jarvis
+    password: ${DB_PASSWORD}
   redis:
     host: localhost
     port: 6379
@@ -239,13 +245,16 @@ spring:
 ### conversations 테이블
 ```sql
 CREATE TABLE conversations (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id BIGSERIAL PRIMARY KEY,
   session_id VARCHAR(255) NOT NULL,
   message TEXT NOT NULL,
   role VARCHAR(50) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  is_deleted BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX idx_conversation_query ON conversations(session_id, is_deleted, created_at DESC);
 CREATE INDEX idx_session_id ON conversations(session_id);
 ```
 
