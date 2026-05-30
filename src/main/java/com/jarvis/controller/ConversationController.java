@@ -4,6 +4,11 @@ import com.jarvis.dto.VoiceProcessResponse;
 import com.jarvis.entity.Conversation;
 import com.jarvis.service.ConversationService;
 import com.jarvis.util.RateLimiter;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -18,14 +23,22 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/conversation")
 @RequiredArgsConstructor
+@Tag(name = "Conversation API", description = "대화 이력 관리 API - 세션별 메시지 저장 및 조회")
 public class ConversationController {
 
     private final ConversationService conversationService;
     private final RateLimiter rateLimiter;
 
+    @Operation(summary = "대화 이력 조회 (페이지네이션)", description = "세션 ID로 대화 이력을 페이지별로 조회")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "조회 성공"),
+        @ApiResponse(responseCode = "400", description = "유효하지 않은 sessionId")
+    })
     @GetMapping("/{sessionId}")
     public ResponseEntity<VoiceProcessResponse<Page<Conversation>>> getHistory(
+            @Parameter(description = "세션 ID", required = true)
             @PathVariable String sessionId,
+            @Parameter(description = "페이지 정보 (기본값: 0페이지, 20개)")
             @PageableDefault(size = 20, page = 0) Pageable pageable) {
         if (sessionId == null || sessionId.isBlank()) {
             log.warn("유효하지 않은 sessionId 요청");
@@ -41,8 +54,14 @@ public class ConversationController {
         ));
     }
 
+    @Operation(summary = "최근 30일 대화 조회", description = "세션 ID로 최근 30일 동안의 모든 대화 메시지 조회 (페이지네이션 없음)")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "조회 성공"),
+        @ApiResponse(responseCode = "400", description = "유효하지 않은 sessionId")
+    })
     @GetMapping("/{sessionId}/recent")
     public ResponseEntity<VoiceProcessResponse<List<Conversation>>> getRecent(
+            @Parameter(description = "세션 ID", required = true)
             @PathVariable String sessionId) {
         if (sessionId == null || sessionId.isBlank()) {
             log.warn("유효하지 않은 sessionId 요청");
@@ -57,8 +76,15 @@ public class ConversationController {
         ));
     }
 
+    @Operation(summary = "세션 대화 삭제", description = "해당 세션 ID의 모든 대화 이력 삭제 (분당 10회 제한)")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "삭제 성공"),
+        @ApiResponse(responseCode = "400", description = "유효하지 않은 sessionId"),
+        @ApiResponse(responseCode = "429", description = "레이트 리미팅 초과")
+    })
     @DeleteMapping("/{sessionId}")
     public ResponseEntity<VoiceProcessResponse<Void>> deleteHistory(
+            @Parameter(description = "세션 ID", required = true)
             @PathVariable String sessionId) {
         if (sessionId == null || sessionId.isBlank()) {
             log.warn("유효하지 않은 sessionId 요청");
@@ -81,6 +107,11 @@ public class ConversationController {
         ));
     }
 
+    @Operation(summary = "30일 이상 된 대화 자동 정리", description = "30일 이상 된 모든 대화 이력 자동 삭제 (관리자 권한 필요)")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "정리 성공"),
+        @ApiResponse(responseCode = "429", description = "레이트 리미팅 초과")
+    })
     @PostMapping("/cleanup")
     public ResponseEntity<VoiceProcessResponse<String>> cleanup() {
         String identifier = "admin-cleanup";

@@ -40,5 +40,17 @@ api:
     connect: 10000
     read: 30000
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+    display-request-duration: true
+    doc-expansion: list
+    use-root-path: true
+
 server:
   port: 8080
