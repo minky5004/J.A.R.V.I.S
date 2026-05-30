@@ -1,30 +1,38 @@
 package com.jarvis.entity;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "conversations")
+@Schema(description = "대화 이력")
 public class Conversation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Schema(description = "대화 ID", example = "1")
     private Long id;
 
     @Column(nullable = false)
+    @Schema(description = "세션 ID", example = "user-12345")
     private String sessionId;
 
     @Column(nullable = false, columnDefinition = "TEXT")
+    @Schema(description = "메시지 내용", example = "내일 날씨가 어때?")
     private String message;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
+    @Schema(description = "역할", example = "USER", allowableValues = {"USER", "ASSISTANT"})
     private ConversationRole role;
 
     @Column(nullable = false, updatable = false)
+    @Schema(description = "생성 시간", example = "2026-05-30T10:30:00")
     private LocalDateTime createdAt;
 
     @Column(nullable = false)
+    @Schema(description = "삭제 여부", example = "false")
     private Boolean isDeleted = false;
 
     public Conversation() {
