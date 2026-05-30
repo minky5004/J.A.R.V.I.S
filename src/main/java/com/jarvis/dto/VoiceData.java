@@ -17,7 +17,7 @@ public class VoiceData {
     @Schema(description = "STT 변환 결과 텍스트", example = "내일 날씨가 어때?")
     private String transcript;
 
-    @Schema(description = "감지된 언어 코드", example = "ko", allowableValues = {"ko", "en", "ja"})
+    @Schema(description = "감지된 언어 코드", example = "ko", allowableValues = {"ko", "en", "ja", "zh"})
     private String language;
 
     @Schema(description = "AI가 파악한 의도", example = "weatherInfo")

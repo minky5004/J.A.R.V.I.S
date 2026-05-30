@@ -107,7 +107,7 @@ public class ConversationController {
         ));
     }
 
-    @Operation(summary = "30일 이상 된 대화 자동 정리", description = "30일 이상 된 모든 대화 이력 자동 삭제 (관리자 권한 필요)")
+    @Operation(summary = "30일 이상 된 대화 자동 정리", description = "30일 이상 된 모든 대화 이력 자동 삭제 (관리자 권한 필요 - Phase 8-4에서 @PreAuthorize 추가 예정)")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "정리 성공"),
         @ApiResponse(responseCode = "429", description = "레이트 리미팅 초과")
@@ -123,7 +123,7 @@ public class ConversationController {
             );
         }
 
-        log.warn("자동 정리 요청 - 관리자 권한 확인 필요 (Phase 8-4에서 @PreAuthorize 추가)");
+        log.warn("자동 정리 요청 - 관리자 권한 검증 필요 (Phase 8-4에서 @PreAuthorize 추가 예정)");
         conversationService.cleanupOldConversations();
         return ResponseEntity.ok(VoiceProcessResponse.success(
             "자동 정리가 실행되었습니다.",

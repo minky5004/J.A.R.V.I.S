@@ -10,9 +10,21 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.Arrays;
 
+/**
+ * Swagger/OpenAPI 3.0 설정
+ * 자동으로 생성되는 API 문서를 통해 REST 엔드포인트를 시각화하고 테스트 가능하게 함
+ *
+ * 접근 경로:
+ * - Swagger UI: http://localhost:8080/swagger-ui.html
+ * - OpenAPI JSON: http://localhost:8080/v3/api-docs
+ */
 @Configuration
 public class SwaggerConfig {
 
+    /**
+     * OpenAPI 스키마 커스터마이징
+     * 서버 정보, API 메타정보, 연락처, 라이선스 등을 정의
+     */
     @Bean
     public OpenAPI customOpenAPI() {
         return new OpenAPI()

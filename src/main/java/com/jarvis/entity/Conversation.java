@@ -24,7 +24,7 @@ public class Conversation {
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    @Schema(description = "역할", example = "USER", allowableValues = {"USER", "AI"})
+    @Schema(description = "역할", example = "USER", allowableValues = {"USER", "ASSISTANT"})
     private ConversationRole role;
 
     @Column(nullable = false, updatable = false)
