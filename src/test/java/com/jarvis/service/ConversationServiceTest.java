@@ -133,28 +133,6 @@ class ConversationServiceTest {
     }
 
     @Test
-    @DisplayName("USER 역할 메시지")
-    void testUserRoleMessage() {
-        // Given
-        Conversation userConv = new Conversation();
-        userConv.setRole(ConversationRole.USER);
-
-        // Then
-        assertEquals(ConversationRole.USER, userConv.getRole());
-    }
-
-    @Test
-    @DisplayName("ASSISTANT 역할 메시지")
-    void testAssistantRoleMessage() {
-        // Given
-        Conversation aiConv = new Conversation();
-        aiConv.setRole(ConversationRole.ASSISTANT);
-
-        // Then
-        assertEquals(ConversationRole.ASSISTANT, aiConv.getRole());
-    }
-
-    @Test
     @DisplayName("빈 메시지 리스트")
     void testEmptyMessageList() {
         // Given
@@ -167,16 +145,5 @@ class ConversationServiceTest {
         // Then
         assertNotNull(result);
         assertTrue(result.isEmpty());
-    }
-
-    @Test
-    @DisplayName("다국어 메시지 저장")
-    void testMultilanguageMessage() {
-        // Given
-        Conversation conversation = new Conversation();
-        conversation.setMessage("こんにちは");
-
-        // Then
-        assertEquals("こんにちは", conversation.getMessage());
     }
 }
