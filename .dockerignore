@@ -1,0 +1,35 @@
+# Git 관련
+.git
+.gitignore
+.github
+
+# IDE 관련
+.idea
+.vscode
+*.iml
+*.iws
+*.ipr
+*.swp
+*.swo
+*~
+
+# 빌드 관련
+build/
+.gradle/
+*.class
+*.jar
+*.log
+
+# 시스템 파일
+.DS_Store
+Thumbs.db
+.env
+.env.local
+
+# 문서
+*.md
+docs/
+
+# 기타
+node_modules/
+.cache/
