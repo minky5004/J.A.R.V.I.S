@@ -121,18 +121,6 @@ curl http://localhost:8080/health
 docker-compose logs -f jarvis-app
 ```
 
-## 📡 API 문서
-
-**Swagger UI 제공** (애플리케이션 실행 후)
-```
-http://localhost:8080/swagger-ui.html
-```
-
-또는 OpenAPI 사양:
-```
-http://localhost:8080/v3/api-docs
-```
-
 ## 📡 API 사용 예시
 
 ### 1. 음성 처리 (Voice)
